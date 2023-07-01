@@ -1,0 +1,80 @@
+config_entry = {
+    'title': 'MaxSmart Devices',
+    'data': {
+        'SWP1023002004971': {
+            'device_unique_id': 'SWP1023002004971',
+            'device_ip': '172.30.47.99',
+            'device_name': 'Chambre',
+            'ports': {
+                'master': {'port_id': 0, 'port_name': 'Master'},
+                'individual_ports': [
+                    {'port_id': 1, 'port_name': 'Port 1'},
+                ]
+            }
+        },
+        'SWP6023002002468': {
+            'device_unique_id': 'SWP6023002002468',
+            'device_ip': '172.30.47.164',
+            'device_name': 'LocalVelo',
+            'ports': {
+                'master': {'port_id': 0, 'port_name': 'Master'},
+                'individual_ports': [
+                    {'port_id': 1, 'port_name': 'Ulysse'},
+                    {'port_id': 2, 'port_name': 'Congélateur'},
+                    {'port_id': 3, 'port_name': 'PORT3'},
+                    {'port_id': 4, 'port_name': 'PORT4'},
+                    {'port_id': 5, 'port_name': 'PORT5'},
+                    {'port_id': 6, 'port_name': 'PORT6'},
+                ]
+            }
+        },
+        'SWP6023002003697': {
+            'device_unique_id': 'SWP6023002003697',
+            'device_ip': '172.30.47.165',
+            'device_name': 'Salon',
+            'ports': {
+                'master': {'port_id': 0, 'port_name': 'Master'},
+                'individual_ports': [
+                    {'port_id': 1, 'port_name': 'Bravia'},
+                    {'port_id': 2, 'port_name': 'Ampli'},
+                    {'port_id': 3, 'port_name': 'HUE'},
+                    {'port_id': 4, 'port_name': 'Transporter'},
+                    {'port_id': 5, 'port_name': 'HP'},
+                    {'port_id': 6, 'port_name': 'Wifi'},
+                ]
+            }
+        },
+        'SWP6023002002463': {
+            'device_unique_id': 'SWP6023002002463',
+            'device_ip': '172.30.47.163',
+            'device_name': 'Office',
+            'ports': {
+                'master': {'port_id': 0, 'port_name': 'Master'},
+                'individual_ports': [
+                    {'port_id': 1, 'port_name': 'NUC'},
+                    {'port_id': 2, 'port_name': 'Stargazer'},
+                    {'port_id': 3, 'port_name': 'Bureau'},
+                    {'port_id': 4, 'port_name': 'Lampe'},
+                    {'port_id': 5, 'port_name': 'Cochrane'},
+                    {'port_id': 6, 'port_name': 'Ecran'},
+                ]
+            }
+        },
+        'SWP6023002002386': {
+            'device_unique_id': 'SWP6023002002386',
+            'device_ip': '172.30.47.162',
+            'device_name': 'Veranda',
+            'ports': {
+                'master': {'port_id': 0, 'port_name': 'Master'},
+                'individual_ports': [
+                    {'port_id': 1, 'port_name': 'Radio'},
+                    {'port_id': 2, 'port_name': 'Artemide'},
+                    {'port_id': 3, 'port_name': 'Port3'},
+                    {'port_id': 4, 'port_name': 'Port4'},
+                    {'port_id': 5, 'port_name': 'Skull'},
+                    {'port_id': 6, 'port_name': 'Port6'},
+                ]
+            }
+        }
+    }
+}
