@@ -13,19 +13,6 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_discovery(self, user_input=None):
-        """Handle a flow initialized by discovery."""
-        _LOGGER.info("Starting device discovery.")
-        devices = await self.hass.async_add_executor_job(
-            MaxSmartDiscovery.discover_maxsmart
-        )
-        _LOGGER.info(f"Discovered devices: {devices}")
-
-        if len(devices) > 0:
-            return await self.async_step_create_entries(devices)
-
-        _LOGGER.warning("No devices found in discovery.")
-        return self.async_abort(reason="no_devices_found")
 
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user."""
@@ -36,36 +23,28 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             devices = await self.hass.async_add_executor_job(
                 MaxSmartDiscovery.discover_maxsmart
             )
-            _LOGGER.info(f"Discovered devices: {devices}")
-
-            if devices:
-                return await self.async_step_create_entries(devices)
-            else:
-                return self.async_show_form(
-                    step_id="user",
-                    data_schema=vol.Schema({vol.Required(CONF_IP_ADDRESS): str}),
-                    errors={"base": "no_devices_found"},
-                )
-
-        _LOGGER.info(f"Starting user-initiated device discovery with IP: {user_input[CONF_IP_ADDRESS]}")
-        devices = await self.hass.async_add_executor_job(
-            MaxSmartDiscovery.discover_maxsmart, user_input[CONF_IP_ADDRESS]
-        )
-        _LOGGER.info(f"Discovered devices: {devices}")
+            _LOGGER.info(f"Discovered devices without IP: {devices}")
+        else:
+            _LOGGER.info("Starting user-initiated device discovery with IP.")
+            devices = await self.hass.async_add_executor_job(
+                MaxSmartDiscovery.discover_maxsmart, user_input[CONF_IP_ADDRESS]
+            )
+            _LOGGER.info(f"Discovered devices with IP: {devices}")
 
         if devices:
+            _LOGGER.info("Devices have been found. Attempting to create entries")
             return await self.async_step_create_entries(devices)
         else:
-            errors["base"] = "no_devices_found"
+            return self.async_show_form(
+                step_id="user",
+                data_schema=vol.Schema({vol.Required(CONF_IP_ADDRESS): str}),
+                errors={"base": "no_devices_found"},
+            )
 
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema({vol.Required(CONF_IP_ADDRESS): str}),
-            errors=errors,
-        )
 
     async def async_step_create_entries(self, devices):
         """Create entries for each discovered device."""
+        _LOGGER.info("Starting async_step_create_entries.")
         for device in devices:
             try:
                 pname = device.get("pname")
@@ -105,3 +84,5 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             except Exception as err:
                 _LOGGER.error("Failed to create device entry: %s", err)
+
+        _LOGGER.info("All entries have been created")

@@ -5,26 +5,17 @@ from maxsmart import MaxSmartDevice
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    devices = config_entry.data
-    entities = []
+    _LOGGER.info("async setup entry for device: %s", config_entry.entry_id)
+    device_entry_id = config_entry.entry_id  # Retrieve the entry ID for the current device
 
-    for device_id, device_data in devices.items():
-        try:
-            ip_address = device_data["device_ip"]
-            device_name = device_data["device_name"]
-            master_port_id = device_data["ports"]["master"]["port_id"]
-
-            maxsmart_device = MaxSmartDevice(ip_address)
-
-            switch_entity = MaxSmartSwitchEntity(
-                maxsmart_device, device_name, master_port_id
-            )
-            entities.append(switch_entity)
-        except Exception as e:
-            _LOGGER.error("Failed to setup device %s: %s", device_name, e)
+    # Retrieve all entities associated with the current device entry
+    entities = [entity for entity in hass.data[DOMAIN]["entities"] if entity.entry_id == device_entry_id]
+    _LOGGER.info("entities are : %s", entities)
 
     async_add_entities(entities)
+
 
 
 class MaxSmartSwitchEntity(SwitchEntity):
