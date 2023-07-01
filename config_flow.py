@@ -15,11 +15,11 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_discovery(self, user_input=None):
         """Handle a flow initialized by discovery."""
-        _LOGGER.debug("Starting device discovery.")
+        _LOGGER.info("Starting device discovery.")
         devices = await self.hass.async_add_executor_job(
             MaxSmartDiscovery.discover_maxsmart
         )
-        _LOGGER.debug(f"Discovered devices: {devices}")
+        _LOGGER.info(f"Discovered devices: {devices}")
 
         if len(devices) > 0:
             return await self.async_step_create_entries(devices)
@@ -32,11 +32,11 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is None:
-            _LOGGER.debug("Starting user-initiated device discovery without IP.")
+            _LOGGER.info("Starting user-initiated device discovery without IP.")
             devices = await self.hass.async_add_executor_job(
                 MaxSmartDiscovery.discover_maxsmart
             )
-            _LOGGER.debug(f"Discovered devices: {devices}")
+            _LOGGER.info(f"Discovered devices: {devices}")
 
             if devices:
                 return await self.async_step_create_entries(devices)
@@ -47,11 +47,11 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     errors={"base": "no_devices_found"},
                 )
 
-        _LOGGER.debug(f"Starting user-initiated device discovery with IP: {user_input[CONF_IP_ADDRESS]}")
+        _LOGGER.info(f"Starting user-initiated device discovery with IP: {user_input[CONF_IP_ADDRESS]}")
         devices = await self.hass.async_add_executor_job(
             MaxSmartDiscovery.discover_maxsmart, user_input[CONF_IP_ADDRESS]
         )
-        _LOGGER.debug(f"Discovered devices: {devices}")
+        _LOGGER.info(f"Discovered devices: {devices}")
 
         if devices:
             return await self.async_step_create_entries(devices)
@@ -91,15 +91,17 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "ports": port_data,
                 }
 
-                _LOGGER.debug(f"Creating entry for device: {device_data}")
 
+                _LOGGER.info("Setting unique_id: %s", device["sn"])
                 await self.async_set_unique_id(device["sn"])
                 self._abort_if_unique_id_configured()
 
+                _LOGGER.info("Creating entry for device: Title: %s, Device data: %s", device["name"], device_data)
                 self.async_create_entry(
                     title=device["name"],
                     data=device_data,
                 )
+                _LOGGER.info("Entry creation finished")
 
             except Exception as err:
                 _LOGGER.error("Failed to create device entry: %s", err)
