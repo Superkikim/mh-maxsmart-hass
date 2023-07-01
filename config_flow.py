@@ -41,6 +41,8 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors={"base": "no_devices_found"},
             )
 
+    _LOGGER.info("Finished step user")
+
 
     async def async_step_create_entries(self, devices):
         """Create entries for each discovered device."""
@@ -51,9 +53,12 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 port_data = {}
 
                 if pname is None:
-                    port_data["individual_ports"] = [
-                        {"port_id": 1, "port_name": device["name"]}
-                    ]
+                    port_data = {
+                        "master": {"port_id": 0, "port_name": "Master"},
+                        "individual_ports": [
+                            {"port_id": 1, "port_name": "Port 1"}
+                        ],
+                    }
                 else:
                     port_data = {
                         "master": {"port_id": 0, "port_name": "Master"},
@@ -76,7 +81,7 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._abort_if_unique_id_configured()
 
                 _LOGGER.info("Creating entry for device: Title: %s, Device data: %s", device["name"], device_data)
-                self.async_create_entry(
+                return self.async_create_entry(
                     title=device["name"],
                     data=device_data,
                 )
