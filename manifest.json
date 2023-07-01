@@ -1,6 +1,6 @@
 {
   "domain": "maxsmart",
-  "name": "MaxSmart Power Strip",
+  "name": "MaxSmart (Revogi)",
   "version": "0.0.4",
   "documentation": "https://github.com/superkikim/maxsmart",
   "codeowners": ["@superkikim"],
