@@ -17,7 +17,7 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle a flow initialized by discovery."""
         _LOGGER.debug("Starting device discovery.")
         devices = await self.hass.async_add_executor_job(
-            MaxSmartDiscovery.discover_maxsmart()
+            MaxSmartDiscovery.discover_maxsmart
         )
         _LOGGER.debug(f"Discovered devices: {devices}")
 
@@ -34,7 +34,7 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is None:
             _LOGGER.debug("Starting user-initiated device discovery without IP.")
             devices = await self.hass.async_add_executor_job(
-                MaxSmartDiscovery.discover_maxsmart()
+                MaxSmartDiscovery.discover_maxsmart
             )
             _LOGGER.debug(f"Discovered devices: {devices}")
 
