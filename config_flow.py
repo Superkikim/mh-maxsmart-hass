@@ -53,21 +53,21 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Create entry for a device"""
         try:
             pname = device.get("pname")
-            sw_version = device.get("ver")
+            # sw_version = device.get("ver")
             port_data = {}
 
             if pname is None:
                 port_data = {
-                    "master": {"port_id": 0, "port_name": "Master"},
+                    "master": {"port_id": 0, "port_name": "0. Master"},
                     "individual_ports": [
-                        {"port_id": 1, "port_name": "Port 1"}
+                        {"port_id": 1, "port_name": "1. Port"}
                     ],
                 }
             else:
                 port_data = {
-                    "master": {"port_id": 0, "port_name": "Master"},
+                    "master": {"port_id": 0, "port_name": "0. Master"},
                     "individual_ports": [
-                        {"port_id": i + 1, "port_name": port_name}
+                        {"port_id": i + 1, "port_name": f"{i + 1}. {port_name}"}
                         for i, port_name in enumerate(pname)
                     ],
                 }
@@ -75,21 +75,27 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             device_data = {
                 "device_unique_id": device["sn"],
                 "device_ip": device["ip"],
-                "device_name": device["name"],
+                "device_name": f"MaxSmart {device['name']}",
                 "sw_version": device["ver"],
                 "ports": port_data,
             }
 
-            _LOGGER.info("Setting unique_id: %s", device["sn"])
             await self.async_set_unique_id(device["sn"])
-            self._abort_if_unique_id_configured()
 
-            _LOGGER.info("Creating entry for device: Title: %s, Device data: %s", device["name"], device_data)
+            current_entries = self._async_current_entries()
+            existing_entry = next((entry for entry in current_entries if entry.unique_id == device["sn"]), None)
+
+            if existing_entry:
+                _LOGGER.info("Device %s with name %s is already configured", device["sn"], device["name"])
+                if existing_entry.data != device_data:
+                    _LOGGER.info("Updating config entry for device %s", device["sn"])
+                    self.hass.config_entries.async_update_entry(existing_entry, data=device_data)
+                return self.async_abort(reason="Device already configured")
+
             return self.async_create_entry(
-                title=device["name"],
+                title=f"maxsmart_{device['sn']}",
                 data=device_data,
             )
-            _LOGGER.info("Entry creation finished")
 
         except Exception as err:
             _LOGGER.error("Failed to create device entry: %s", err)

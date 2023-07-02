@@ -33,6 +33,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     ]
 
     # Add all entities (master + individual ports)
+#    async_add_entities(port_entities)
     async_add_entities([master_entity] + port_entities)
 
 class HaMaxSmartPortEntity(SwitchEntity):
@@ -42,7 +43,7 @@ class HaMaxSmartPortEntity(SwitchEntity):
         self._device_name = device_name
         self._port_id = port_id
         self._port_unique_id = f"{device_unique_id}_{port_id}"
-        self._port_name = port_name
+        self._port_name = f"{DOMAIN} {device_name} {port_name}"
         self._device_version = device_version
         self._device_model = device_model
         self._is_on = False
@@ -57,7 +58,7 @@ class HaMaxSmartPortEntity(SwitchEntity):
                 # Serial numbers are unique identifiers within a specific domain
                 (DOMAIN, self._device_unique_id)
             },
-            "name": self._device_name,
+            "name": f"MaxSmart {self._device_name}",
             "manufacturer": "Max Hauri (Revogi)",
             "model": self._device_model,
             "sw_version": self._device_version,
@@ -73,9 +74,15 @@ class HaMaxSmartPortEntity(SwitchEntity):
 
     def turn_on(self, **kwargs):
         self._maxsmart_device.turn_on(self._port_id)
+        self.update()
+        if not self._is_on:
+            _LOGGER.error('Failed to turn on device. Update still shows it as off.')
 
     def turn_off(self, **kwargs):
         self._maxsmart_device.turn_off(self._port_id)
+        self.update()
+        if self._is_on:
+            _LOGGER.error('Failed to turn off device. Update still shows it as on.')
 
     def update(self):
         if self._port_id == 0:
