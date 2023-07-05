@@ -1,0 +1,8 @@
+{
+    "title": "MaxSmart",
+    "abort": {
+      "devices_found": "Device setup was successful. You can close this window.",
+      "device_already_configured": "This device is already configured. You can close this window."
+    }
+  }
+  
