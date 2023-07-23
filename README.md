@@ -31,7 +31,7 @@ After installing the component, you need to add it to your configuration:
 
 ## Entities
 
-Each discovered device will create a set of entities. There is one master switch entity and a separate switch entity for each individual port. The entity IDs will be generated based on the device's serial number and port number in the format `switch.maxsmart_<serialnumber>_<portnumber>`.
+Each discovered device will create a set of entities. There is one master switch entity and a separate switch entity for each individual port. The entity IDs will be generated based on the device's serial number and port number in the format `switch.maxsmart_<devicenumber>_<portnumber>_<portname>`.
 
 ## Notes
 

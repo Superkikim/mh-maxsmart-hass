@@ -1,26 +1,27 @@
 {
-  "domain": "maxsmart",
-  "name": "MaxSmart (Revogi)",
-  "version": "0.0.4",
-  "documentation": "https://github.com/superkikim/maxsmart",
-  "codeowners": ["@superkikim"],
-  "config_flow": true,
-  "dependencies": [],
-  "iot_class": "local_polling",
-  "requirements": ["maxsmart==0.1.7", "requests"],
-  "loggers": ["maxsmart"],
-  "homeassistant": {
-    "supports_options": true,
-    "device_registry_class": "maxsmart.device_registry.MaxSmartDeviceRegistry",
-    "entity_registry_class": "maxsmart.entity_registry.MaxSmartEntityRegistry",
-    "config_flow": {
-      "init": "maxsmart.config_flow.init_config_flow",
-      "flow_class": "maxsmart.config_flow.MaxSmartConfigFlow"
-    }
-  },
-  "translations": ["en"],
-  "data_entry_flow": true,
-  "homeassistant_version": "2023.6.2",
-  "issue_tracker": "https://github.com/superkikim/maxsmart/issues",
-  "persistent_notifications": true
-}
+    "domain": "maxsmart",
+    "name": "MaxSmart (Revogi)",
+    "version": "0.0.5",
+    "documentation": "https://github.com/superkikim/maxsmart",
+    "codeowners": ["@superkikim"],
+    "config_flow": true,
+    "dependencies": [],
+    "iot_class": "local_polling",
+    "requirements": ["maxsmart==0.1.7", "requests"],
+    "loggers": ["maxsmart"],
+    "homeassistant": {
+      "supports_options": true,
+      "device_registry_class": "maxsmart.device_registry.MaxSmartDeviceRegistry",
+      "entity_registry_class": "maxsmart.entity_registry.MaxSmartEntityRegistry",
+      "config_flow": {
+        "init": "maxsmart.config_flow.init_config_flow",
+        "flow_class": "maxsmart.config_flow.MaxSmartConfigFlow"
+      }
+    },
+    "translations": ["en"],
+    "data_entry_flow": true,
+    "homeassistant_version": "2023.6.2",
+    "issue_tracker": "https://github.com/superkikim/maxsmart/issues",
+    "persistent_notifications": true
+  }
+  

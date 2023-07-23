@@ -1,6 +1,7 @@
 """Platform for switch integration."""
 import logging
 from homeassistant.components.switch import SwitchEntity
+from homeassistant.helpers.entity import Entity
 from maxsmart import MaxSmartDevice
 from .const import DOMAIN
 
@@ -8,7 +9,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    _LOGGER.info("async setup entry for device: %s", config_entry.entry_id)
+    _LOGGER.debug("async setup entry for device: %s", config_entry.entry_id)
 
     device_data = config_entry.data
     device_unique_id = device_data['device_unique_id']
@@ -50,9 +51,9 @@ class HaMaxSmartPortEntity(SwitchEntity):
         self._attr_device_info = self.device_info
         self._attr_unique_id = self.unique_id
 
-    async def async_added_to_hass(self):
-        """Run when entity about to be added to hass."""
-        await self.hass.async_add_executor_job(self.update)
+#    async def async_added_to_hass(self):
+#        """Run when entity about to be added to hass."""
+#        await self.hass.async_add_executor_job(self.update)
 
     @property
     def device_info(self):
