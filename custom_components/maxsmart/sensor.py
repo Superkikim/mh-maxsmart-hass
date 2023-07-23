@@ -1,42 +1,99 @@
 """Platform for sensor integration."""
-from homeassistant.components.sensor import SensorEntity
+import logging
+from datetime import timedelta
+from homeassistant.const import DEVICE_CLASS_POWER
+from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.event import async_track_time_interval
+from .const import DOMAIN
+from maxsmart import MaxSmartDevice
 
-def async_setup_entry(hass, config_entry, async_add_entities):
-    """Set up the sensor platform."""
-    # Create a list to hold the entities
-    entities = []
+_LOGGER = logging.getLogger(__name__)
 
-    # Get the data from the config entry
-    sensors = config_entry.data.get("sensor")
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    _LOGGER.debug("async setup entry for power sensors: %s", config_entry.entry_id)
 
-    # For each sensor, create a SensorEntity and add it to the list
-    for sensor in sensors:
-        entities.append(MaxSmartSensor(sensor))
+    device_data = config_entry.data
+    device_unique_id = device_data['device_unique_id']
+    device_ip = device_data['device_ip']
+    device_name = device_data['device_name']
+    device_ports = device_data['ports']
+    device_version = device_data['sw_version']
+    device_model = 'MaxSmart Smart Plug' if len(device_ports['individual_ports']) == 1 else 'MaxSmart Power Station'
 
-    # Add the entities to Home Assistant
-    async_add_entities(entities, update_before_add=True)
+    # Create the MaxSmartDevice instance for this device
+    maxsmart_device = MaxSmartDevice(device_ip)
 
+    # Create power sensor entities for each individual port
+    power_sensor_entities = [
+        HaMaxSmartPowerSensor(maxsmart_device, device_unique_id, device_name, port['port_id'], port['port_name'], device_version, device_model)
+        for port in device_ports['individual_ports']
+    ]
 
-class MaxSmartSensor(SensorEntity):
-    """Representation of a MaxSmart sensor."""
+    # Add all power sensor entities
+    async_add_entities(power_sensor_entities)
 
-    def __init__(self, sensor):
-        """Initialize the sensor."""
-        self._name = sensor["name"]
-        self._unique_id = sensor["unique_id"]
-        self._state = "Unknown"
+    # Schedule the update() method for each sensor entity at a more frequent interval (e.g., every 5 seconds)
+    update_interval_seconds = 5
+    update_interval = timedelta(seconds=update_interval_seconds)
+    for sensor in power_sensor_entities:
+        async_track_time_interval(hass, sensor.update, interval=update_interval)
+
+class HaMaxSmartPowerSensor(Entity):
+    def __init__(self, maxsmart_device, device_unique_id, device_name, port_id, port_name, device_version, device_model):
+        self._maxsmart_device = maxsmart_device
+        self._device_unique_id = device_unique_id
+        self._device_name = device_name
+        self._port_id = port_id
+        self._port_unique_id = f"{device_unique_id}_{port_id}"
+        self._port_name = f"{device_name} {port_name}"
+        self._device_version = device_version
+        self._device_model = device_model
+        self._power_data = None
+        self._attr_device_info = self.device_info
+        self._attr_unique_id = self.unique_id
 
     @property
+    def device_info(self):
+        """Return the device info."""
+        return {
+            "identifiers": {
+                # Serial numbers are unique identifiers within a specific domain
+                (DOMAIN, self._device_unique_id)
+            },
+            "name": f"MaxSmart {self._device_name}",
+            "manufacturer": "Max Hauri (Revogi)",
+            "model": self._device_model,
+            "sw_version": self._device_version,
+        }
+   
+    @property
     def name(self):
-        """Return the name of the sensor."""
-        return self._name
+        return f"{self._port_name} Power"
 
     @property
     def unique_id(self):
-        """Return the unique ID of the sensor."""
-        return self._unique_id
+        return f"{self._device_unique_id}_{self._port_id}_power"
+
+    def update(self, now=None):
+        self._power_data = self._maxsmart_device.get_power_data(self._port_id)
+
+    def update(self, now=None):
+        power_data = self._maxsmart_device.get_power_data(self._port_id)
+        if power_data is not None:
+            self._power_data = float(power_data['watt'])
+        else:
+            self._power_data = 0
+
+    @property
+    def unit_of_measurement(self):
+        return "W"
 
     @property
     def state(self):
-        """Return the state of the sensor."""
-        return self._state
+        if self._power_data:
+            return self._power_data
+        return None
+
+    @property
+    def device_class(self):
+        return DEVICE_CLASS_POWER
