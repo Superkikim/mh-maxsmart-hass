@@ -1,9 +1,9 @@
 {
     "domain": "maxsmart",
-    "name": "MaxSmart (Revogi)",
-    "version": "2023.7-beta1",
-    "documentation": "https://github.com/superkikim/maxsmart",
-    "codeowners": ["@superkikim"],
+    "name": "Max Hauri Maxsmart",
+    "version": "2023.8.1-beta",
+    "documentation": "https://github.com/superkikim/mh-maxsmart-hass",
+    "codeowners": ["@Superkikim"],
     "config_flow": true,
     "dependencies": [],
     "iot_class": "local_polling",
@@ -18,10 +18,10 @@
         "flow_class": "maxsmart.config_flow.MaxSmartConfigFlow"
       }
     },
-    "translations": ["en"],
+    "translations": ["en", "fr", "de"],
     "data_entry_flow": true,
     "homeassistant_version": "2023.6.2",
-    "issue_tracker": "https://github.com/superkikim/maxsmart/issues",
+    "issue_tracker": "https://github.com/superkikim/mh-maxsmart-hass/issues",
     "persistent_notifications": true
   }
- 
+  

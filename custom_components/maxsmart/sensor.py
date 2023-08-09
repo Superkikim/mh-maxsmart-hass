@@ -18,7 +18,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     device_name = device_data['device_name']
     device_ports = device_data['ports']
     device_version = device_data['sw_version']
-    device_model = 'MaxSmart Smart Plug' if len(device_ports['individual_ports']) == 1 else 'MaxSmart Power Station'
+    device_model = 'Maxsmart Smart Plug' if len(device_ports['individual_ports']) == 1 else 'Maxsmart Power Station'
 
     # Create the MaxSmartDevice instance for this device
     maxsmart_device = MaxSmartDevice(device_ip)
@@ -60,8 +60,8 @@ class HaMaxSmartPowerSensor(Entity):
                 # Serial numbers are unique identifiers within a specific domain
                 (DOMAIN, self._device_unique_id)
             },
-            "name": f"MaxSmart {self._device_name}",
-            "manufacturer": "Max Hauri (Revogi)",
+            "name": f"Maxsmart {self._device_name}",
+            "manufacturer": "Max Hauri",
             "model": self._device_model,
             "sw_version": self._device_version,
         }
@@ -90,9 +90,7 @@ class HaMaxSmartPowerSensor(Entity):
 
     @property
     def state(self):
-        if self._power_data:
-            return self._power_data
-        return None
+        return self._power_data or 0
 
     @property
     def device_class(self):

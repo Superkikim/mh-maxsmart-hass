@@ -1,0 +1,49 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "MaxSmart Konfiguration",
+        "description": "Geben Sie die IP-Adresse des Geräts ein oder wählen Sie, um Geräte manuell hinzuzufügen.",
+        "data": {
+          "ip_address": "IP-Adresse",
+          "add_more": "Mehr Geräte hinzufügen?"
+        }
+      },
+      "process_data": {
+        "title": "Gerät konfigurieren",
+        "description": "Konfigurieren Sie das Gerät mit IP {ip}, SN {sn} und {np} Ports.",
+        "data": {
+          "device_name": "Gerätename",
+          "port1_name": "Port 1 Name",
+          "port2_name": "Port 2 Name",
+          "port3_name": "Port 3 Name",
+          "port4_name": "Port 4 Name",
+          "port5_name": "Port 5 Name",
+          "port6_name": "Port 6 Name"
+        }
+      },
+      "add_more_devices": {
+        "title": "Mehr Geräte hinzufügen",
+        "description": "Möchten Sie mehr Geräte hinzufügen?",
+        "data": {
+          "add_more": "Mehr Geräte hinzufügen?"
+        }
+      },
+      "import": {
+        "title": "Gerät importieren",
+        "description": "Gerät mit IP {ip} und SN {sn} importieren.",
+        "data": {
+          "overwrite": "Vorhandenen Eintrag überschreiben?"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip": "Ungültige IP-Adresse.",
+      "device_creation_failed": "Geräteeintrag konnte nicht erstellt werden."
+    },
+    "abort": {
+      "no_devices_found": "Keine Geräte gefunden.",
+      "configuration_complete": "Konfiguration abgeschlossen."
+    }
+  }
+}

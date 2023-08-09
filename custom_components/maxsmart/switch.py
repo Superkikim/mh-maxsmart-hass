@@ -63,8 +63,8 @@ class HaMaxSmartPortEntity(SwitchEntity):
                 # Serial numbers are unique identifiers within a specific domain
                 (DOMAIN, self._device_unique_id)
             },
-            "name": f"MaxSmart {self._device_name}",
-            "manufacturer": "Max Hauri (Revogi)",
+            "name": f"Maxsmart {self._device_name}",
+            "manufacturer": "Max Hauri",
             "model": self._device_model,
             "sw_version": self._device_version,
         }

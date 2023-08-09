@@ -1,0 +1,49 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuration MaxSmart",
+        "description": "Entrez l'adresse IP de l'appareil ou choisissez d'ajouter des appareils manuellement.",
+        "data": {
+          "ip_address": "Adresse IP",
+          "add_more": "Ajouter plus d'appareils?"
+        }
+      },
+      "process_data": {
+        "title": "Configurer l'appareil",
+        "description": "Configurez l'appareil avec l'IP {ip}, SN {sn} et {np} ports.",
+        "data": {
+          "device_name": "Nom de l'appareil",
+          "port1_name": "Nom du port 1",
+          "port2_name": "Nom du port 2",
+          "port3_name": "Nom du port 3",
+          "port4_name": "Nom du port 4",
+          "port5_name": "Nom du port 5",
+          "port6_name": "Nom du port 6"
+        }
+      },
+      "add_more_devices": {
+        "title": "Ajouter plus d'appareils",
+        "description": "Voulez-vous ajouter plus d'appareils?",
+        "data": {
+          "add_more": "Ajouter plus d'appareils?"
+        }
+      },
+      "import": {
+        "title": "Importer l'appareil",
+        "description": "Importer l'appareil avec l'IP {ip} et SN {sn}.",
+        "data": {
+          "overwrite": "Écraser l'entrée existante?"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip": "Adresse IP invalide.",
+      "device_creation_failed": "Échec de la création de l'entrée de l'appareil."
+    },
+    "abort": {
+      "no_devices_found": "Aucun appareil trouvé.",
+      "configuration_complete": "Configuration terminée."
+    }
+  }
+}

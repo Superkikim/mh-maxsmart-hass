@@ -1,8 +1,49 @@
 {
-    "title": "MaxSmart",
+  "config": {
+    "step": {
+      "user": {
+        "title": "MaxSmart Configuration",
+        "description": "Enter the IP address of the device or choose to add devices manually.",
+        "data": {
+          "ip_address": "IP Address",
+          "add_more": "Add more devices?"
+        }
+      },
+      "process_data": {
+        "title": "Configure Device",
+        "description": "Configure the device with IP {ip}, SN {sn}, and {np} ports.",
+        "data": {
+          "device_name": "Device Name",
+          "port1_name": "Port 1 Name",
+          "port2_name": "Port 2 Name",
+          "port3_name": "Port 3 Name",
+          "port4_name": "Port 4 Name",
+          "port5_name": "Port 5 Name",
+          "port6_name": "Port 6 Name"
+        }
+      },
+      "add_more_devices": {
+        "title": "Add More Devices",
+        "description": "Would you like to add more devices?",
+        "data": {
+          "add_more": "Add more devices?"
+        }
+      },
+      "import": {
+        "title": "Import Device",
+        "description": "Importing device with IP {ip} and SN {sn}.",
+        "data": {
+          "overwrite": "Overwrite existing entry?"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip": "Invalid IP address.",
+      "device_creation_failed": "Failed to create device entry."
+    },
     "abort": {
-      "devices_found": "Device setup was successful. You can close this window.",
-      "device_already_configured": "This device is already configured. You can close this window."
+      "no_devices_found": "No devices found.",
+      "configuration_complete": "Configuration complete."
     }
   }
-  
+}
