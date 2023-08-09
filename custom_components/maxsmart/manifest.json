@@ -1,13 +1,13 @@
 {
     "domain": "maxsmart",
     "name": "MaxSmart (Revogi)",
-    "version": "0.0.5",
+    "version": "2023.7-beta1",
     "documentation": "https://github.com/superkikim/maxsmart",
     "codeowners": ["@superkikim"],
     "config_flow": true,
     "dependencies": [],
     "iot_class": "local_polling",
-    "requirements": ["maxsmart==0.1.7", "requests"],
+    "requirements": ["maxsmart==0.1.9b", "requests"],
     "loggers": ["maxsmart"],
     "homeassistant": {
       "supports_options": true,
@@ -24,4 +24,4 @@
     "issue_tracker": "https://github.com/superkikim/maxsmart/issues",
     "persistent_notifications": true
   }
-  
+ 
