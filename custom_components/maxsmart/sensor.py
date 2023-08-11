@@ -74,12 +74,18 @@ class HaMaxSmartPowerSensor(Entity):
     def unique_id(self):
         return f"{self._device_unique_id}_{self._port_id}_power"
 
-    def update(self, now=None):
-        self._power_data = self._maxsmart_device.get_power_data(self._port_id)
+#    def update(self, now=None):
+#        self._power_data = self._maxsmart_device.get_power_data(self._port_id)
 
     def update(self, now=None):
+        _LOGGER.debug("Entering update")
         power_data = self._maxsmart_device.get_power_data(self._port_id)
+        _LOGGER.debug("power_data has been populated with %s",power_data)
         if power_data is not None:
+            # Check if the device version is 1.30 and convert from milliwatts to watts if true
+            _LOGGER.debug("Firmware version is %s",self._device_version)
+            if self._device_version =! "1.30":
+                power_data /= 1000
             self._power_data = float(power_data['watt'])
         else:
             self._power_data = 0
