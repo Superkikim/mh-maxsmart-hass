@@ -1,7 +1,7 @@
 {
     "domain": "maxsmart",
     "name": "MaxSmart (Revogi)",
-    "version": "2023.7-beta1",
+    "version": "2023.7.0-beta1",
     "documentation": "https://github.com/superkikim/maxsmart",
     "codeowners": ["@superkikim"],
     "config_flow": true,
