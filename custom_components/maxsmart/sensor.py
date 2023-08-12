@@ -84,7 +84,7 @@ class HaMaxSmartPowerSensor(Entity):
         if power_data is not None:
             # Check if the device version is 1.30 and convert from milliwatts to watts if true
             _LOGGER.debug("Firmware version is %s",self._device_version)
-            if self._device_version =! "1.30":
+            if self._device_version != "1.30":
                 power_data /= 1000
             self._power_data = float(power_data['watt'])
         else:
