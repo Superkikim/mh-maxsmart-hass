@@ -3,10 +3,18 @@ from homeassistant import config_entries, exceptions
 from homeassistant.const import CONF_IP_ADDRESS
 import voluptuous as vol
 from .const import DOMAIN
-from maxsmart import MaxSmartDiscovery
+from maxsmart import MaxSmartDiscovery, MaxSmartDevice
 
 _LOGGER = logging.getLogger(__name__)
 
+async def async_get_number_of_ports(hass, ip_address):
+    """Get the number of ports for the device with the given IP address."""
+    _LOGGER.debug("Checking number of ports")
+    device = MaxSmartDevice(ip_address)
+    state = await hass.async_add_executor_job(device.check_state)
+    # Logic to determine the number of ports from the state
+    # (replace with the appropriate logic for your use case)
+    return len(state)
 
 class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """MaxSmart Config Flow"""
@@ -51,31 +59,44 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_import(self, device):
         """Create entry for a device"""
+        ip_address = device["ip"]
+        device_name = device["name"]
+        num_of_ports = await async_get_number_of_ports(self.hass, ip_address)
+        firmware = device["ver"]
+
         try:
             pname = device.get("pname")
+
             # sw_version = device.get("ver")
             port_data = {}
 
-            if pname is None:
+
+            if num_of_ports == 1:
+                if firmware != "1.30":
+                    device_name = ip_address
                 port_data = {
                     "master": {"port_id": 0, "port_name": "0. Master"},
                     "individual_ports": [
                         {"port_id": 1, "port_name": "1. Port"}
                     ],
                 }
-            else:
+            elif num_of_ports == 6:
+                if firmware != "1.30":
+                    device_name = ip_address
+                    pname = ["Port 1", "Port 2", "Port 3", "Port 4", "Port 5", "Port 6"]
                 port_data = {
-                    "master": {"port_id": 0, "port_name": "0. Master"},
+                    "master": {"port_id": 0, "port_name": "Master"},
                     "individual_ports": [
                         {"port_id": i + 1, "port_name": f"{i + 1}. {port_name}"}
                         for i, port_name in enumerate(pname)
                     ],
                 }
 
+
             device_data = {
                 "device_unique_id": device["sn"],
                 "device_ip": device["ip"],
-                "device_name": device['name'],
+                "device_name": device_name,
                 "sw_version": device["ver"],
                 "ports": port_data,
             }

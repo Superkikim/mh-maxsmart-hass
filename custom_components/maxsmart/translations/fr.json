@@ -1,0 +1,18 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "ip_address": "Adresse IP"
+        }
+      }
+    },
+    "error": {
+      "no_devices_found": "Aucun appareil trouvé. Veuillez vérifier l'adresse IP et réessayer."
+    },
+    "abort": {
+      "devices_found": "Les appareils ont été trouvés et ajoutés avec succès.",
+      "device_already_configured": "Cet appareil est déjà configuré."
+    }
+  }
+}

@@ -1,8 +1,18 @@
 {
-    "title": "MaxSmart",
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "ip_address": "IP Address"
+        }
+      }
+    },
+    "error": {
+      "no_devices_found": "No devices found. Please check the IP address and try again."
+    },
     "abort": {
-      "devices_found": "Device setup was successful. You can close this window.",
-      "device_already_configured": "This device is already configured. You can close this window."
+      "devices_found": "Devices have been found and added successfully.",
+      "device_already_configured": "This device is already configured."
     }
   }
-  
+}
