@@ -3,7 +3,7 @@ import logging
 from datetime import timedelta
 from homeassistant.const import DEVICE_CLASS_POWER
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
 from .const import DOMAIN
 from .coordinator import MaxSmartCoordinator
 
@@ -25,14 +25,17 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     # Start the coordinator
     await coordinator.async_refresh()
 
-    # Create power sensor entities for each individual port
+    # Create entities
+    master_port = device_ports['master']
+    master_power_sensor_entity = HaMaxSmartPowerSensor(coordinator, device_unique_id, device_name, 0, master_port['port_name'], device_version, device_model)
+
     power_sensor_entities = [
         HaMaxSmartPowerSensor(coordinator, device_unique_id, device_name, port['port_id'], port['port_name'], device_version, device_model)
         for port in device_ports['individual_ports']
     ]
 
     # Add all power sensor entities
-    async_add_entities(power_sensor_entities)
+    async_add_entities([master_power_sensor_entity] + power_sensor_entities)
 
 class HaMaxSmartPowerSensor(Entity):
     def __init__(self, coordinator, device_unique_id, device_name, port_id, port_name, device_version, device_model):
@@ -47,6 +50,17 @@ class HaMaxSmartPowerSensor(Entity):
         self._power_data = None
         self._attr_device_info = self.device_info
         self._attr_unique_id = self.unique_id
+        if self._port_id == 0:
+            self._update_signal = f"maxsmart_update_{self._device_unique_id}"
+
+    async def async_added_to_hass(self):
+        """Call when entity is added to hass."""
+        if self._port_id == 0:
+            self.async_on_remove(
+                async_dispatcher_connect(
+                    self.hass, self._update_signal, self.async_update
+                )
+            )
 
     @property
     def device_info(self):
@@ -72,21 +86,20 @@ class HaMaxSmartPowerSensor(Entity):
 
 
     async def async_update(self, now=None):
-        _LOGGER.debug("Entering update")
         await self._coordinator.async_refresh()
         coordinator_data = self._coordinator.data
         watt_list = coordinator_data['watt']
-        _LOGGER.debug("watt_list has been populated with %s",watt_list)
-        power_data = watt_list[self._port_id - 1]
-        _LOGGER.debug("power_data has been populated with %s",power_data)
-        if power_data is not None:
-            # Check if the device version is 1.30 and convert from milliwatts to watts if true
-            _LOGGER.debug("Firmware version is %s",self._device_version)
-            _LOGGER.debug("coordinator_data: %s", coordinator_data)
-            _LOGGER.debug("watt_list: %s", watt_list)
-            _LOGGER.debug("self._port_id: %s", self._port_id)
-            _LOGGER.debug("power_data: %s", power_data)
+
+        if self._port_id == 0:  # Master port
+            self._power_data = sum(float(watt) for watt in watt_list)
+        else:
+            async_dispatcher_send(self.hass, f"maxsmart_update_{self._device_unique_id}")
+            power_data = watt_list[self._port_id - 1]
             self._power_data = float(power_data)
+
+
+        if self._power_data is not None:
+            # Check if the device version is 1.30 and convert from milliwatts to watts if true
             if self._device_version != "1.30":
                 self._power_data /= 1000.0
         else:
