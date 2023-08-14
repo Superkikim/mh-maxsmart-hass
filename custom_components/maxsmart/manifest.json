@@ -1,13 +1,13 @@
 {
     "domain": "maxsmart",
     "name": "Max Hauri Maxsmart",
-    "version": "2023.8.0-beta2",
+    "version": "2023.8.0-beta3",
     "documentation": "https://github.com/superkikim/mh-maxsmart-hass",
     "codeowners": ["@Superkikim"],
     "config_flow": true,
     "dependencies": [],
     "iot_class": "local_polling",
-    "requirements": ["maxsmart==0.1.9b", "requests"],
+    "requirements": ["maxsmart==0.2.0", "requests"],
     "loggers": ["maxsmart"],
     "homeassistant": {
       "supports_options": true,
