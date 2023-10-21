@@ -2,6 +2,8 @@
 
 This is a custom component for Home Assistant that integrates Max Hauri's MaxSmart Power Devices, including Smart Plug and Power Station. It communicates with the devices over your local network, providing controls for each port on the device.
 
+For details about the supported hardware and fw version, please see the Maxsmart module documentation here: https://github.com/Superkikim/maxsmart
+
 ## Features
 
 * Discovery of MaxSmart devices on the network.
