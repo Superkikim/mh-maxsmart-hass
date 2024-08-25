@@ -1,2 +1,51 @@
+# Python cache files
 __pycache__/
-custom_components/maxsmart/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Distribution/Packaging
+*.egg-info/
+dist/
+build/
+.eggs/
+.installed.cfg
+*.egg
+
+# Logs
+*.log
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Test result files
+coverage.xml
+*.cover
+*.coverage
+nosetests.xml
+test-results/
+*.mo
+*.pot
+coverage/
+*.orig
+
+# Pytest
+.cache
+*.pyc
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# Other
+.DS_Store
+Thumbs.db
