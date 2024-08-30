@@ -6,7 +6,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 import logging
 
-from .const import DOMAIN
+from .const import DOMAIN, VERSION
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Max Hauri MaxSmart Power Devices from a config entry."""
-    _LOGGER.info("async_setup_entry from __init__.py")
+    _LOOGER.debug("async_setup_entry from __init__.py")
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

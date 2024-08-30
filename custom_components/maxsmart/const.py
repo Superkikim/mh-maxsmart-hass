@@ -1,4 +1,5 @@
 DOMAIN = "maxsmart"
+VERSION = "2024.8.1-alpha1"
 # Configuration key for the device name
 CONF_DEVICE_NAME = "device_name"
 

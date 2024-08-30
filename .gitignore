@@ -1,2 +1,36 @@
+# Python cache files
 __pycache__/
-custom_components/maxsmart/__pycache__/
+*.py[cod]
+
+# Virtual environment
+venv/
+
+# Build directories
+build/
+dist/
+*.egg-info/
+
+# Test and coverage files
+.coverage
+nosetests.xml
+*.cover
+*.log
+*.pot
+*.pyc
+*.pyo
+
+# IDE or editor files (example for common ones)
+.vscode/
+.idea/
+*.swp  # Swap files for vim
+*.sublime-project
+*.sublime-workspace
+
+# MacOS specific files
+.DS_Store
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Local configuration files
+local_settings.py
