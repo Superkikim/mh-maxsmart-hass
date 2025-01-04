@@ -1,7 +1,7 @@
 """Platform for sensor integration."""
 import logging
 from datetime import timedelta
-from homeassistant.const import DEVICE_CLASS_POWER
+from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
 from .const import DOMAIN
@@ -115,4 +115,4 @@ class HaMaxSmartPowerSensor(Entity):
 
     @property
     def device_class(self):
-        return DEVICE_CLASS_POWER
+        return SensorDeviceClass.POWER
