@@ -1,27 +1,26 @@
 {
-    "domain": "maxsmart",
-    "name": "Max Hauri Maxsmart",
-    "version": "2024.8.1-alpha1",
-    "documentation": "https://github.com/superkikim/mh-maxsmart-hass",
-    "codeowners": ["@Superkikim"],
-    "config_flow": true,
-    "dependencies": [],
-    "iot_class": "local_polling",
-    "requirements": ["maxsmart==2.0.0b1"],
-    "loggers": ["maxsmart"],
-    "homeassistant": {
-      "supports_options": true,
-      "device_registry_class": "maxsmart.device_registry.MaxSmartDeviceRegistry",
-      "entity_registry_class": "maxsmart.entity_registry.MaxSmartEntityRegistry",
-      "config_flow": {
-        "init": "maxsmart.config_flow.init_config_flow",
-        "flow_class": "maxsmart.config_flow.MaxSmartConfigFlow"
-      }
-    },
-    "translations": ["en", "fr", "de"],
-    "data_entry_flow": true,
-    "homeassistant_version": "2024.8.3",
-    "issue_tracker": "https://github.com/superkikim/mh-maxsmart-hass/issues",
-    "persistent_notifications": true
-  }
-  
+  "domain": "maxsmart",
+  "name": "Max Hauri Maxsmart",
+  "version": "2025.1.0-alpha2",
+  "documentation": "https://github.com/superkikim/mh-maxsmart-hass",
+  "codeowners": ["@Superkikim"],
+  "config_flow": true,
+  "dependencies": [],
+  "iot_class": "local_polling",
+  "requirements": ["maxsmart==2.0.0b1"],
+  "loggers": ["maxsmart"],
+  "homeassistant": {
+    "supports_options": true,
+    "device_registry_class": "maxsmart.device_registry.MaxSmartDeviceRegistry",
+    "entity_registry_class": "maxsmart.entity_registry.MaxSmartEntityRegistry",
+    "config_flow": {
+      "init": "maxsmart.config_flow.init_config_flow",
+      "flow_class": "maxsmart.config_flow.MaxSmartConfigFlow"
+    }
+  },
+  "translations": ["en", "fr", "de"],
+  "data_entry_flow": true,
+  "homeassistant_version": "2025.1.0",
+  "issue_tracker": "https://github.com/superkikim/mh-maxsmart-hass/issues",
+  "persistent_notifications": true
+}
