@@ -17,7 +17,7 @@ PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Max Hauri MaxSmart Power Devices from a config entry."""
-    _LOOGER.debug("async_setup_entry from __init__.py")
+    _LOGGER.debug("async_setup_entry from __init__.py")
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

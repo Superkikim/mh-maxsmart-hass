@@ -15,20 +15,20 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is None:
-            _LOOGER.debug("Starting user-initiated device discovery without IP.")
+            _LOGGER.debug("Starting user-initiated device discovery without IP.")
             devices = await self.hass.async_add_executor_job(
                 MaxSmartDiscovery.discover_maxsmart
             )
-            _LOOGER.debug(f"Discovered devices without IP: {devices}")
+            _LOGGER.debug(f"Discovered devices without IP: {devices}")
         else:
-            _LOOGER.debug("Starting user-initiated device discovery with IP.")
+            _LOGGER.debug("Starting user-initiated device discovery with IP.")
             devices = await self.hass.async_add_executor_job(
                 MaxSmartDiscovery.discover_maxsmart, user_input[CONF_IP_ADDRESS]
             )
-            _LOOGER.debug(f"Discovered devices with IP: {devices}")
+            _LOGGER.debug(f"Discovered devices with IP: {devices}")
 
         if devices:
-            _LOOGER.debug("Devices have been found. Attempting to create entries")
+            _LOGGER.debug("Devices have been found. Attempting to create entries")
             for device in devices:
                 await self.hass.config_entries.flow.async_init(
                     DOMAIN,
@@ -43,7 +43,7 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors={"base": "no_devices_found"},
             )
 
-    _LOOGER.debug("Finished step user")
+    _LOGGER.debug("Finished step user")
 
     async def async_step_import(self, device):
         """Create entry for a device"""
@@ -94,9 +94,9 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             existing_entry = next((entry for entry in current_entries if entry.unique_id == device["sn"]), None)
 
             if existing_entry:
-                _LOOGER.debug("Device %s with name %s is already configured", device["sn"], device["name"])
+                _LOGGER.debug("Device %s with name %s is already configured", device["sn"], device["name"])
                 if existing_entry.data != device_data:
-                    _LOOGER.debug("Updating config entry for device %s", device["sn"])
+                    _LOGGER.debug("Updating config entry for device %s", device["sn"])
                     self.hass.config_entries.async_update_entry(existing_entry, data=device_data)
                 return self.async_abort(reason="device_already_configured")
 
