@@ -1,7 +1,7 @@
 {
   "domain": "maxsmart",
   "name": "Max Hauri Maxsmart",
-  "version": "2023.8.0-beta4",
+  "version": "2025.1.0-beta4",
   "documentation": "https://github.com/superkikim/mh-maxsmart-hass",
   "codeowners": ["@Superkikim"],
   "config_flow": true,
