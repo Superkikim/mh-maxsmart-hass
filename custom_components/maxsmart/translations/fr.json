@@ -2,17 +2,109 @@
   "config": {
     "step": {
       "user": {
+        "title": "Découverte des appareils MaxSmart",
+        "description": "Recherche d'appareils MaxSmart sur votre réseau. Si aucun appareil n'est trouvé automatiquement, vous pouvez saisir une adresse IP manuellement.",
         "data": {
           "ip_address": "Adresse IP"
+        },
+        "data_description": {
+          "ip_address": "Saisissez l'adresse IP de votre appareil MaxSmart (ex : 192.168.1.100)"
+        }
+      },
+      "customize_names": {
+        "title": "Personnaliser les noms d'appareil",
+        "description": "Personnalisez les noms de votre appareil MaxSmart et de ses ports. Ces noms seront utilisés dans Home Assistant.\n\n{device_info}\n\nAppareil {device_count}",
+        "data": {
+          "device_name": "Nom de l'appareil",
+          "port_1_name": "Nom du port 1",
+          "port_2_name": "Nom du port 2",
+          "port_3_name": "Nom du port 3",
+          "port_4_name": "Nom du port 4",
+          "port_5_name": "Nom du port 5",
+          "port_6_name": "Nom du port 6"
+        },
+        "data_description": {
+          "device_name": "Nom de l'appareil (apparaîtra comme 'MaxSmart [nom]')",
+          "port_1_name": "Nom du port 1",
+          "port_2_name": "Nom du port 2",
+          "port_3_name": "Nom du port 3",
+          "port_4_name": "Nom du port 4",
+          "port_5_name": "Nom du port 5",
+          "port_6_name": "Nom du port 6"
         }
       }
     },
     "error": {
-      "no_devices_found": "Aucun appareil trouvé. Veuillez vérifier l'adresse IP et réessayer."
+      "discovery_failed": "La découverte automatique a échoué. Veuillez essayer de saisir une adresse IP manuellement.",
+      "no_device_found": "Aucun appareil MaxSmart trouvé à cette adresse IP. Vérifiez l'IP et assurez-vous que l'appareil est allumé.",
+      "connection_error": "Impossible de se connecter à l'appareil. Vérifiez l'adresse IP et la connexion réseau.",
+      "invalid_ip": "Veuillez saisir une adresse IP valide (ex : 192.168.1.100).",
+      "device_info_error": "Impossible de récupérer les informations de l'appareil. Veuillez réessayer.",
+      "name_required": "Ce champ est obligatoire et ne peut pas être vide.",
+      "name_too_long": "Le nom est trop long (maximum 50 caractères).",
+      "invalid_characters": "Le nom contient des caractères non valides. Utilisez uniquement des lettres, chiffres, espaces, tirets, underscores et points.",
+      "name_duplicate": "Ce nom est déjà utilisé. Veuillez choisir un nom différent."
     },
     "abort": {
-      "devices_found": "Les appareils ont été trouvés et ajoutés avec succès.",
-      "device_already_configured": "Cet appareil est déjà configuré."
+      "devices_configured": "Tous les appareils découverts ont été configurés avec succès.",
+      "device_already_configured": "Cet appareil est déjà configuré dans Home Assistant.",
+      "no_device": "Aucun appareil sélectionné pour la configuration.",
+      "single_instance_allowed": "Une seule instance de l'intégration MaxSmart est autorisée."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Renommer l'appareil MaxSmart",
+        "description": "Modifiez les noms de votre appareil MaxSmart et de ses ports. Les modifications seront appliquées immédiatement.",
+        "data": {
+          "device_name": "Nom de l'appareil",
+          "port_1_name": "Nom du port 1",
+          "port_2_name": "Nom du port 2",
+          "port_3_name": "Nom du port 3",
+          "port_4_name": "Nom du port 4",
+          "port_5_name": "Nom du port 5",
+          "port_6_name": "Nom du port 6"
+        },
+        "data_description": {
+          "device_name": "Nouveau nom pour l'appareil",
+          "port_1_name": "Nouveau nom pour le port 1",
+          "port_2_name": "Nouveau nom pour le port 2",
+          "port_3_name": "Nouveau nom pour le port 3",
+          "port_4_name": "Nouveau nom pour le port 4",
+          "port_5_name": "Nouveau nom pour le port 5",
+          "port_6_name": "Nouveau nom pour le port 6"
+        }
+      }
+    },
+    "error": {
+      "name_required": "Ce champ est obligatoire et ne peut pas être vide.",
+      "name_too_long": "Le nom est trop long (maximum 50 caractères).",
+      "invalid_characters": "Le nom contient des caractères non valides. Utilisez uniquement des lettres, chiffres, espaces, tirets, underscores et points.",
+      "name_duplicate": "Ce nom est déjà utilisé. Veuillez choisir un nom différent."
+    }
+  },
+  "entity": {
+    "switch": {
+      "master": {
+        "name": "{device_name} Maître"
+      },
+      "port": {
+        "name": "{device_name} {port_name}"
+      }
+    },
+    "sensor": {
+      "power": {
+        "name": "{device_name} {port_name} Puissance"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "turned_on": "Allumé",
+      "turned_off": "Éteint",
+      "power_above": "Consommation au-dessus de",
+      "power_below": "Consommation en-dessous de"
     }
   }
 }

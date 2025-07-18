@@ -2,17 +2,109 @@
   "config": {
     "step": {
       "user": {
+        "title": "MaxSmart Geräteerkennung",
+        "description": "Suche nach MaxSmart-Geräten in Ihrem Netzwerk. Falls keine Geräte automatisch gefunden werden, können Sie eine IP-Adresse manuell eingeben.",
         "data": {
           "ip_address": "IP-Adresse"
+        },
+        "data_description": {
+          "ip_address": "Geben Sie die IP-Adresse Ihres MaxSmart-Geräts ein (z.B. 192.168.1.100)"
+        }
+      },
+      "customize_names": {
+        "title": "Gerätenamen anpassen",
+        "description": "Passen Sie die Namen Ihres MaxSmart-Geräts und seiner Anschlüsse an. Diese Namen werden in Home Assistant verwendet.\n\n{device_info}\n\nGerät {device_count}",
+        "data": {
+          "device_name": "Gerätename",
+          "port_1_name": "Name für Anschluss 1",
+          "port_2_name": "Name für Anschluss 2",
+          "port_3_name": "Name für Anschluss 3",
+          "port_4_name": "Name für Anschluss 4",
+          "port_5_name": "Name für Anschluss 5",
+          "port_6_name": "Name für Anschluss 6"
+        },
+        "data_description": {
+          "device_name": "Name für das Gerät (erscheint als 'MaxSmart [Name]')",
+          "port_1_name": "Name für Anschluss 1",
+          "port_2_name": "Name für Anschluss 2",
+          "port_3_name": "Name für Anschluss 3",
+          "port_4_name": "Name für Anschluss 4",
+          "port_5_name": "Name für Anschluss 5",
+          "port_6_name": "Name für Anschluss 6"
         }
       }
     },
     "error": {
-      "no_devices_found": "Keine Geräte gefunden. Bitte überprüfen Sie die IP-Adresse und versuchen Sie es erneut."
+      "discovery_failed": "Automatische Erkennung fehlgeschlagen. Bitte versuchen Sie, eine IP-Adresse manuell einzugeben.",
+      "no_device_found": "Kein MaxSmart-Gerät unter dieser IP-Adresse gefunden. Überprüfen Sie die IP und stellen Sie sicher, dass das Gerät eingeschaltet ist.",
+      "connection_error": "Verbindung zum Gerät nicht möglich. Überprüfen Sie die IP-Adresse und Netzwerkverbindung.",
+      "invalid_ip": "Bitte geben Sie eine gültige IP-Adresse ein (z.B. 192.168.1.100).",
+      "device_info_error": "Geräteinformationen konnten nicht abgerufen werden. Bitte versuchen Sie es erneut.",
+      "name_required": "Dieses Feld ist erforderlich und darf nicht leer sein.",
+      "name_too_long": "Name ist zu lang (maximal 50 Zeichen).",
+      "invalid_characters": "Name enthält ungültige Zeichen. Verwenden Sie nur Buchstaben, Zahlen, Leerzeichen, Bindestriche, Unterstriche und Punkte.",
+      "name_duplicate": "Dieser Name wird bereits verwendet. Bitte wählen Sie einen anderen Namen."
     },
     "abort": {
-      "devices_found": "Geräte wurden gefunden und erfolgreich hinzugefügt.",
-      "device_already_configured": "Dieses Gerät ist bereits konfiguriert."
+      "devices_configured": "Alle erkannten Geräte wurden erfolgreich konfiguriert.",
+      "device_already_configured": "Dieses Gerät ist bereits in Home Assistant konfiguriert.",
+      "no_device": "Kein Gerät für die Konfiguration ausgewählt.",
+      "single_instance_allowed": "Es ist nur eine Instanz der MaxSmart-Integration erlaubt."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "MaxSmart-Gerät umbenennen",
+        "description": "Ändern Sie die Namen Ihres MaxSmart-Geräts und seiner Anschlüsse. Die Änderungen werden sofort angewendet.",
+        "data": {
+          "device_name": "Gerätename",
+          "port_1_name": "Name für Anschluss 1",
+          "port_2_name": "Name für Anschluss 2",
+          "port_3_name": "Name für Anschluss 3",
+          "port_4_name": "Name für Anschluss 4",
+          "port_5_name": "Name für Anschluss 5",
+          "port_6_name": "Name für Anschluss 6"
+        },
+        "data_description": {
+          "device_name": "Neuer Name für das Gerät",
+          "port_1_name": "Neuer Name für Anschluss 1",
+          "port_2_name": "Neuer Name für Anschluss 2",
+          "port_3_name": "Neuer Name für Anschluss 3",
+          "port_4_name": "Neuer Name für Anschluss 4",
+          "port_5_name": "Neuer Name für Anschluss 5",
+          "port_6_name": "Neuer Name für Anschluss 6"
+        }
+      }
+    },
+    "error": {
+      "name_required": "Dieses Feld ist erforderlich und darf nicht leer sein.",
+      "name_too_long": "Name ist zu lang (maximal 50 Zeichen).",
+      "invalid_characters": "Name enthält ungültige Zeichen. Verwenden Sie nur Buchstaben, Zahlen, Leerzeichen, Bindestriche, Unterstriche und Punkte.",
+      "name_duplicate": "Dieser Name wird bereits verwendet. Bitte wählen Sie einen anderen Namen."
+    }
+  },
+  "entity": {
+    "switch": {
+      "master": {
+        "name": "{device_name} Master"
+      },
+      "port": {
+        "name": "{device_name} {port_name}"
+      }
+    },
+    "sensor": {
+      "power": {
+        "name": "{device_name} {port_name} Leistung"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "turned_on": "Eingeschaltet",
+      "turned_off": "Ausgeschaltet",
+      "power_above": "Verbrauch über",
+      "power_below": "Verbrauch unter"
     }
   }
 }

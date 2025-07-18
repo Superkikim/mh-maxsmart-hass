@@ -1,123 +1,422 @@
+# custom_components/maxsmart/config_flow.py
+"""Config flow for MaxSmart integration with smart naming."""
+
+from __future__ import annotations
+
+import asyncio
 import logging
-from homeassistant import config_entries, exceptions
-from homeassistant.const import CONF_IP_ADDRESS
+import re
+from typing import Any, Dict, List, Optional
+
 import voluptuous as vol
-from .const import DOMAIN
+
+from homeassistant import config_entries
+from homeassistant.const import CONF_IP_ADDRESS
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.data_entry_flow import FlowResult
+from homeassistant.exceptions import HomeAssistantError
+
 from maxsmart import MaxSmartDiscovery, MaxSmartDevice
+from maxsmart.exceptions import (
+    DiscoveryError,
+    ConnectionError as MaxSmartConnectionError,
+    DeviceTimeoutError,
+)
+
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_get_number_of_ports(hass, ip_address):
-    """Get the number of ports for the device with the given IP address."""
-    _LOGGER.debug("Checking number of ports")
-    device = MaxSmartDevice(ip_address)
-    state = await hass.async_add_executor_job(device.check_state)
-    # Logic to determine the number of ports from the state
-    # (replace with the appropriate logic for your use case)
-    return len(state)
+# Validation patterns
+VALID_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9\s\-_\.]+$')
+MAX_NAME_LENGTH = 50
 
 class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """MaxSmart Config Flow"""
+    """Handle a config flow for MaxSmart devices."""
 
-    VERSION = 1
+    VERSION = 2
+    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
+    def __init__(self) -> None:
+        """Initialize the config flow."""
+        self._discovered_devices: List[Dict[str, Any]] = []
+        self._current_device: Optional[Dict[str, Any]] = None
+        self._device_index = 0
 
-    async def async_step_user(self, user_input=None):
-        """Handle a flow initialized by the user."""
-        errors = {}
+    async def async_step_user(
+        self, user_input: Optional[Dict[str, Any]] = None
+    ) -> FlowResult:
+        """Handle the initial step - discovery or manual IP."""
+        errors: Dict[str, str] = {}
 
         if user_input is None:
-            _LOGGER.info("Starting user-initiated device discovery without IP.")
-            devices = await self.hass.async_add_executor_job(
-                MaxSmartDiscovery.discover_maxsmart
-            )
-            _LOGGER.info(f"Discovered devices without IP: {devices}")
+            # First try automatic discovery
+            _LOGGER.info("Starting automatic MaxSmart device discovery")
+            try:
+                discovered = await self._async_discover_devices()
+                if discovered:
+                    self._discovered_devices = discovered
+                    self._device_index = 0
+                    _LOGGER.info("Found %d MaxSmart devices", len(discovered))
+                    return await self._async_process_next_device()
+                else:
+                    _LOGGER.info("No devices found automatically, showing manual input form")
+                    
+            except Exception as err:
+                _LOGGER.warning("Automatic discovery failed: %s", err)
+                errors["base"] = "discovery_failed"
+
         else:
-            _LOGGER.info("Starting user-initiated device discovery with IP.")
-            devices = await self.hass.async_add_executor_job(
-                MaxSmartDiscovery.discover_maxsmart, user_input[CONF_IP_ADDRESS]
-            )
-            _LOGGER.info(f"Discovered devices with IP: {devices}")
+            # Manual IP provided
+            ip_address = user_input[CONF_IP_ADDRESS].strip()
+            if not self._is_valid_ip(ip_address):
+                errors["ip_address"] = "invalid_ip"
+            else:
+                try:
+                    discovered = await self._async_discover_devices(ip_address)
+                    if discovered:
+                        self._discovered_devices = discovered
+                        self._device_index = 0
+                        return await self._async_process_next_device()
+                    else:
+                        errors["ip_address"] = "no_device_found"
+                        
+                except Exception as err:
+                    _LOGGER.error("Manual discovery failed for %s: %s", ip_address, err)
+                    errors["ip_address"] = "connection_error"
 
-        if devices:
-            _LOGGER.info("Devices have been found. Attempting to create entries")
-            for device in devices:
-                await self.hass.config_entries.flow.async_init(
-                    DOMAIN,
-                    context={"source": config_entries.SOURCE_IMPORT},
-                    data=device
-                )
-            return self.async_abort(reason="devices_found")
-        else:
-            return self.async_show_form(
-                step_id="user",
-                data_schema=vol.Schema({vol.Required(CONF_IP_ADDRESS): str}),
-                errors={"base": "no_devices_found"},
-            )
-
-    _LOGGER.info("Finished step user")
-
-    async def async_step_import(self, device):
-        """Create entry for a device"""
-        ip_address = device["ip"]
-        device_name = device["name"]
-        num_of_ports = await async_get_number_of_ports(self.hass, ip_address)
-        firmware = device["ver"]
-
-        try:
-            pname = device.get("pname")
-
-            # sw_version = device.get("ver")
-            port_data = {}
-
-
-            if num_of_ports == 1:
-                if firmware != "1.30":
-                    device_name = ip_address
-                port_data = {
-                    "master": {"port_id": 0, "port_name": "0. Master"},
-                    "individual_ports": [
-                        {"port_id": 1, "port_name": "1. Port"}
-                    ],
-                }
-            elif num_of_ports == 6:
-                if firmware != "1.30":
-                    device_name = ip_address
-                    pname = ["Port 1", "Port 2", "Port 3", "Port 4", "Port 5", "Port 6"]
-                port_data = {
-                    "master": {"port_id": 0, "port_name": "Master"},
-                    "individual_ports": [
-                        {"port_id": i + 1, "port_name": f"{i + 1}. {port_name}"}
-                        for i, port_name in enumerate(pname)
-                    ],
-                }
-
-
-            device_data = {
-                "device_unique_id": device["sn"],
-                "device_ip": device["ip"],
-                "device_name": device_name,
-                "sw_version": device["ver"],
-                "ports": port_data,
+        # Show manual input form
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema({
+                vol.Required(CONF_IP_ADDRESS): str,
+            }),
+            errors=errors,
+            description_placeholders={
+                "discovery_info": "No devices found automatically" if not errors.get("base") else "Discovery failed"
             }
+        )
 
-            await self.async_set_unique_id(device["sn"])
-
-            current_entries = self._async_current_entries()
-            existing_entry = next((entry for entry in current_entries if entry.unique_id == device["sn"]), None)
-
-            if existing_entry:
-                _LOGGER.info("Device %s with name %s is already configured", device["sn"], device["name"])
-                if existing_entry.data != device_data:
-                    _LOGGER.info("Updating config entry for device %s", device["sn"])
-                    self.hass.config_entries.async_update_entry(existing_entry, data=device_data)
-                return self.async_abort(reason="device_already_configured")
-
-            return self.async_create_entry(
-                title=f"maxsmart_{device['sn']}",
-                data=device_data,
-            )
-
+    async def _async_discover_devices(
+        self, target_ip: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Discover MaxSmart devices with error handling."""
+        try:
+            if target_ip:
+                devices = await self.hass.async_add_executor_job(
+                    MaxSmartDiscovery.discover_maxsmart, target_ip
+                )
+            else:
+                devices = await self.hass.async_add_executor_job(
+                    MaxSmartDiscovery.discover_maxsmart
+                )
+                
+            # Filter out already configured devices
+            filtered_devices = []
+            for device in devices or []:
+                if not self._is_device_configured(device["sn"]):
+                    filtered_devices.append(device)
+                else:
+                    _LOGGER.info("Device %s already configured, skipping", device["sn"])
+                    
+            return filtered_devices
+            
+        except DiscoveryError as err:
+            _LOGGER.error("Discovery error: %s", err)
+            raise
         except Exception as err:
-            _LOGGER.error("Failed to create device entry: %s", err)
+            _LOGGER.error("Unexpected discovery error: %s", err)
+            raise
 
+    async def _async_process_next_device(self) -> FlowResult:
+        """Process the next device in the discovery list."""
+        if self._device_index >= len(self._discovered_devices):
+            # All devices processed
+            return self.async_abort(reason="devices_configured")
+
+        self._current_device = self._discovered_devices[self._device_index]
+        return await self.async_step_customize_names()
+
+    async def async_step_customize_names(
+        self, user_input: Optional[Dict[str, Any]] = None
+    ) -> FlowResult:
+        """Handle device and port name customization."""
+        if not self._current_device:
+            return self.async_abort(reason="no_device")
+
+        device = self._current_device
+        errors: Dict[str, str] = {}
+
+        if user_input is not None:
+            # Validate user input
+            validation_errors = self._validate_names(user_input, device)
+            if not validation_errors:
+                # Create the config entry
+                entry_data = await self._async_create_entry_data(device, user_input)
+                title = user_input.get("device_name", device["name"])
+                
+                # Move to next device or finish
+                self._device_index += 1
+                
+                result = self.async_create_entry(
+                    title=f"MaxSmart {title}",
+                    data=entry_data,
+                )
+                
+                # If there are more devices, continue to next one
+                if self._device_index < len(self._discovered_devices):
+                    # Store the result and continue (this is a bit tricky in config flow)
+                    return await self._async_process_next_device()
+                    
+                return result
+            else:
+                errors.update(validation_errors)
+
+        # Get device info and default names
+        try:
+            device_info = await self._async_get_device_info(device)
+            schema = self._build_customize_schema(device_info)
+            
+            description = (
+                f"Device: {device['name']} ({device['ip']})\n"
+                f"Firmware: {device['ver']}\n"
+                f"Ports: {len(device_info['port_names'])}"
+            )
+            
+            return self.async_show_form(
+                step_id="customize_names",
+                data_schema=schema,
+                errors=errors,
+                description_placeholders={
+                    "device_info": description,
+                    "device_count": f"{self._device_index + 1}/{len(self._discovered_devices)}"
+                }
+            )
+            
+        except Exception as err:
+            _LOGGER.error("Error getting device info for %s: %s", device["ip"], err)
+            return self.async_abort(reason="device_info_error")
+
+    async def _async_get_device_info(self, device: Dict[str, Any]) -> Dict[str, Any]:
+        """Get device information including port names."""
+        device_obj = MaxSmartDevice(device["ip"])
+        
+        try:
+            await device_obj.initialize_device()
+            
+            # Try to get port names from device
+            try:
+                port_names_dict = await device_obj.retrieve_port_names()
+                if port_names_dict:
+                    device_name = port_names_dict.get("Port 0", device["name"])
+                    # Extract port names (Port 1, Port 2, etc.)
+                    port_names = []
+                    port_num = 1
+                    while f"Port {port_num}" in port_names_dict:
+                        port_names.append(port_names_dict[f"Port {port_num}"])
+                        port_num += 1
+                else:
+                    raise ValueError("No port names available")
+                    
+            except Exception:
+                # Fallback to defaults
+                num_ports = len(device.get("pname", [])) or 1
+                device_name = device["name"]
+                port_names = [f"Port {i}" for i in range(1, num_ports + 1)]
+                
+            return {
+                "device_name": device_name,
+                "port_names": port_names,
+                "num_ports": len(port_names)
+            }
+            
+        finally:
+            await device_obj.close()
+
+    def _build_customize_schema(self, device_info: Dict[str, Any]) -> vol.Schema:
+        """Build the schema for name customization."""
+        schema_dict = {
+            vol.Required("device_name", default=device_info["device_name"]): str,
+        }
+        
+        # Add port name fields
+        for i, port_name in enumerate(device_info["port_names"], 1):
+            schema_dict[vol.Required(f"port_{i}_name", default=port_name)] = str
+            
+        return vol.Schema(schema_dict)
+
+    def _validate_names(
+        self, user_input: Dict[str, Any], device: Dict[str, Any]
+    ) -> Dict[str, str]:
+        """Validate user-provided names."""
+        errors = {}
+        names_used = []
+
+        # Validate device name
+        device_name = user_input.get("device_name", "").strip()
+        if not device_name:
+            errors["device_name"] = "name_required"
+        elif len(device_name) > MAX_NAME_LENGTH:
+            errors["device_name"] = "name_too_long"
+        elif not VALID_NAME_PATTERN.match(device_name):
+            errors["device_name"] = "invalid_characters"
+        else:
+            names_used.append(device_name.lower())
+
+        # Validate port names
+        port_keys = [key for key in user_input.keys() if key.startswith("port_") and key.endswith("_name")]
+        for port_key in port_keys:
+            port_name = user_input.get(port_key, "").strip()
+            if not port_name:
+                errors[port_key] = "name_required"
+            elif len(port_name) > MAX_NAME_LENGTH:
+                errors[port_key] = "name_too_long"
+            elif not VALID_NAME_PATTERN.match(port_name):
+                errors[port_key] = "invalid_characters"
+            elif port_name.lower() in names_used:
+                errors[port_key] = "name_duplicate"
+            else:
+                names_used.append(port_name.lower())
+
+        return errors
+
+    async def _async_create_entry_data(
+        self, device: Dict[str, Any], user_input: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Create the entry data structure."""
+        device_name = user_input["device_name"].strip()
+        
+        # Extract port names from user input
+        port_names = []
+        port_keys = sorted([key for key in user_input.keys() if key.startswith("port_") and key.endswith("_name")])
+        for port_key in port_keys:
+            port_names.append(user_input[port_key].strip())
+
+        # Build port structure
+        port_data = {
+            "master": {"port_id": 0, "port_name": "Master"},
+            "individual_ports": [
+                {"port_id": i + 1, "port_name": f"{i + 1}. {name}"}
+                for i, name in enumerate(port_names)
+            ],
+        }
+
+        return {
+            "device_unique_id": device["sn"],
+            "device_ip": device["ip"],
+            "device_name": device_name,
+            "sw_version": device["ver"],
+            "ports": port_data,
+            "custom_names": {
+                "device": device_name,
+                "ports": port_names
+            }
+        }
+
+    def _is_device_configured(self, serial_number: str) -> bool:
+        """Check if device is already configured."""
+        for entry in self._async_current_entries():
+            if entry.data.get("device_unique_id") == serial_number:
+                return True
+        return False
+
+    def _is_valid_ip(self, ip: str) -> bool:
+        """Validate IP address format."""
+        parts = ip.split('.')
+        if len(parts) != 4:
+            return False
+        try:
+            return all(0 <= int(part) <= 255 for part in parts)
+        except ValueError:
+            return False
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> MaxSmartOptionsFlow:
+        """Get the options flow."""
+        return MaxSmartOptionsFlow(config_entry)
+
+class MaxSmartOptionsFlow(config_entries.OptionsFlow):
+    """Handle options flow for MaxSmart devices."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: Optional[Dict[str, Any]] = None
+    ) -> FlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            # Validate and update names
+            errors = self._validate_options(user_input)
+            if not errors:
+                return self.async_create_entry(title="", data=user_input)
+        else:
+            user_input = self._get_current_options()
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=self._build_options_schema(user_input),
+            errors=errors if 'errors' in locals() else {}
+        )
+
+    def _get_current_options(self) -> Dict[str, Any]:
+        """Get current options/names."""
+        custom_names = self.config_entry.data.get("custom_names", {})
+        options = {
+            "device_name": custom_names.get("device", self.config_entry.data.get("device_name", "")),
+        }
+        
+        port_names = custom_names.get("ports", [])
+        for i, name in enumerate(port_names, 1):
+            options[f"port_{i}_name"] = name
+            
+        return options
+
+    def _build_options_schema(self, current_options: Dict[str, Any]) -> vol.Schema:
+        """Build options schema."""
+        schema_dict = {
+            vol.Required("device_name", default=current_options.get("device_name", "")): str,
+        }
+        
+        # Add port fields based on current config
+        ports = self.config_entry.data.get("ports", {}).get("individual_ports", [])
+        for i, port in enumerate(ports, 1):
+            current_name = current_options.get(f"port_{i}_name", f"Port {i}")
+            schema_dict[vol.Required(f"port_{i}_name", default=current_name)] = str
+            
+        return vol.Schema(schema_dict)
+
+    def _validate_options(self, options: Dict[str, Any]) -> Dict[str, str]:
+        """Validate options input."""
+        errors = {}
+        names_used = []
+
+        # Same validation as config flow
+        device_name = options.get("device_name", "").strip()
+        if not device_name:
+            errors["device_name"] = "name_required"
+        elif len(device_name) > MAX_NAME_LENGTH:
+            errors["device_name"] = "name_too_long"
+        elif not VALID_NAME_PATTERN.match(device_name):
+            errors["device_name"] = "invalid_characters"
+        else:
+            names_used.append(device_name.lower())
+
+        # Validate port names
+        port_keys = [key for key in options.keys() if key.startswith("port_") and key.endswith("_name")]
+        for port_key in port_keys:
+            port_name = options.get(port_key, "").strip()
+            if not port_name:
+                errors[port_key] = "name_required"
+            elif len(port_name) > MAX_NAME_LENGTH:
+                errors[port_key] = "name_too_long"
+            elif not VALID_NAME_PATTERN.match(port_name):
+                errors[port_key] = "invalid_characters"
+            elif port_name.lower() in names_used:
+                errors[port_key] = "name_duplicate"
+            else:
+                names_used.append(port_name.lower())
+
+        return errors

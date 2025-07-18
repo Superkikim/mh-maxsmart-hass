@@ -2,17 +2,109 @@
   "config": {
     "step": {
       "user": {
+        "title": "MaxSmart Device Discovery",
+        "description": "Searching for MaxSmart devices on your network. If no devices are found automatically, you can enter an IP address manually.",
         "data": {
           "ip_address": "IP Address"
+        },
+        "data_description": {
+          "ip_address": "Enter the IP address of your MaxSmart device (e.g., 192.168.1.100)"
+        }
+      },
+      "customize_names": {
+        "title": "Customize Device Names",
+        "description": "Customize the names for your MaxSmart device and its ports. These names will be used in Home Assistant.\n\n{device_info}\n\nDevice {device_count}",
+        "data": {
+          "device_name": "Device Name",
+          "port_1_name": "Port 1 Name",
+          "port_2_name": "Port 2 Name",
+          "port_3_name": "Port 3 Name",
+          "port_4_name": "Port 4 Name",
+          "port_5_name": "Port 5 Name",
+          "port_6_name": "Port 6 Name"
+        },
+        "data_description": {
+          "device_name": "Name for the device (will appear as 'MaxSmart [name]')",
+          "port_1_name": "Name for port 1",
+          "port_2_name": "Name for port 2",
+          "port_3_name": "Name for port 3",
+          "port_4_name": "Name for port 4",
+          "port_5_name": "Name for port 5",
+          "port_6_name": "Name for port 6"
         }
       }
     },
     "error": {
-      "no_devices_found": "No devices found. Please check the IP address and try again."
+      "discovery_failed": "Automatic discovery failed. Please try entering an IP address manually.",
+      "no_device_found": "No MaxSmart device found at this IP address. Please check the IP and ensure the device is powered on.",
+      "connection_error": "Could not connect to the device. Please check the IP address and network connection.",
+      "invalid_ip": "Please enter a valid IP address (e.g., 192.168.1.100).",
+      "device_info_error": "Could not retrieve device information. Please try again.",
+      "name_required": "This field is required and cannot be empty.",
+      "name_too_long": "Name is too long (maximum 50 characters).",
+      "invalid_characters": "Name contains invalid characters. Use only letters, numbers, spaces, hyphens, underscores, and dots.",
+      "name_duplicate": "This name is already used. Please choose a different name."
     },
     "abort": {
-      "devices_found": "Devices have been found and added successfully.",
-      "device_already_configured": "This device is already configured."
+      "devices_configured": "All discovered devices have been configured successfully.",
+      "device_already_configured": "This device is already configured in Home Assistant.",
+      "no_device": "No device selected for configuration.",
+      "single_instance_allowed": "Only one instance of MaxSmart integration is allowed."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Rename MaxSmart Device",
+        "description": "Change the names of your MaxSmart device and its ports. The changes will be applied immediately.",
+        "data": {
+          "device_name": "Device Name",
+          "port_1_name": "Port 1 Name",
+          "port_2_name": "Port 2 Name",
+          "port_3_name": "Port 3 Name",
+          "port_4_name": "Port 4 Name",
+          "port_5_name": "Port 5 Name",
+          "port_6_name": "Port 6 Name"
+        },
+        "data_description": {
+          "device_name": "New name for the device",
+          "port_1_name": "New name for port 1",
+          "port_2_name": "New name for port 2",
+          "port_3_name": "New name for port 3",
+          "port_4_name": "New name for port 4",
+          "port_5_name": "New name for port 5",
+          "port_6_name": "New name for port 6"
+        }
+      }
+    },
+    "error": {
+      "name_required": "This field is required and cannot be empty.",
+      "name_too_long": "Name is too long (maximum 50 characters).",
+      "invalid_characters": "Name contains invalid characters. Use only letters, numbers, spaces, hyphens, underscores, and dots.",
+      "name_duplicate": "This name is already used. Please choose a different name."
+    }
+  },
+  "entity": {
+    "switch": {
+      "master": {
+        "name": "{device_name} Master"
+      },
+      "port": {
+        "name": "{device_name} {port_name}"
+      }
+    },
+    "sensor": {
+      "power": {
+        "name": "{device_name} {port_name} Power"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "turned_on": "Turned on",
+      "turned_off": "Turned off",
+      "power_above": "Power consumption above",
+      "power_below": "Power consumption below"
     }
   }
 }
