@@ -1,5 +1,5 @@
 # custom_components/maxsmart/config_flow.py
-"""Config flow for MaxSmart integration with smart naming."""
+"""Config flow for MaxSmart integration - creates discovery cards for all devices."""
 
 from __future__ import annotations
 
@@ -27,8 +27,8 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-# Validation patterns
-VALID_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9\s\-_\.]+$')
+# Validation patterns - Support for accented characters
+VALID_NAME_PATTERN = re.compile(r'^[\w\s\-\.àáâäèéêëìíîïòóôöùúûüÿçñÀÁÂÄÈÉÊËÌÍÎÏÒÓÔÖÙÚÛÜŸÇÑ]+$')
 MAX_NAME_LENGTH = 50
 
 class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -39,9 +39,7 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Initialize the config flow."""
-        self._discovered_devices: List[Dict[str, Any]] = []
-        self._current_device: Optional[Dict[str, Any]] = None
-        self._device_index = 0
+        self._discovered_device: Optional[Dict[str, Any]] = None
 
     async def async_step_user(
         self, user_input: Optional[Dict[str, Any]] = None
@@ -53,12 +51,16 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # First try automatic discovery
             _LOGGER.info("Starting automatic MaxSmart device discovery")
             try:
-                discovered = await self._async_discover_devices()
-                if discovered:
-                    self._discovered_devices = discovered
-                    self._device_index = 0
-                    _LOGGER.info("Found %d MaxSmart devices", len(discovered))
-                    return await self._async_process_next_device()
+                discovered_devices = await self._async_discover_devices()
+                if discovered_devices:
+                    _LOGGER.info("Found %d MaxSmart devices", len(discovered_devices))
+                    
+                    # Create discovery flows for all devices except one
+                    await self._async_create_discovery_flows(discovered_devices[1:])
+                    
+                    # Configure the first device in this flow
+                    self._discovered_device = discovered_devices[0]
+                    return await self.async_step_customize_names()
                 else:
                     _LOGGER.info("No devices found automatically, showing manual input form")
                     
@@ -73,11 +75,11 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["ip_address"] = "invalid_ip"
             else:
                 try:
-                    discovered = await self._async_discover_devices(ip_address)
-                    if discovered:
-                        self._discovered_devices = discovered
-                        self._device_index = 0
-                        return await self._async_process_next_device()
+                    discovered_devices = await self._async_discover_devices(ip_address)
+                    if discovered_devices:
+                        # Single device found, configure it in this flow
+                        self._discovered_device = discovered_devices[0]
+                        return await self.async_step_customize_names()
                     else:
                         errors["ip_address"] = "no_device_found"
                         
@@ -93,82 +95,83 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             }),
             errors=errors,
             description_placeholders={
-                "discovery_info": "No devices found automatically" if not errors.get("base") else "Discovery failed"
+                "discovery_info": "Enter IP manually if automatic discovery failed"
             }
         )
 
-    async def _async_discover_devices(
-        self, target_ip: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
-        """Discover MaxSmart devices with error handling."""
-        try:
-            if target_ip:
-                devices = await self.hass.async_add_executor_job(
-                    MaxSmartDiscovery.discover_maxsmart, target_ip
-                )
-            else:
-                devices = await self.hass.async_add_executor_job(
-                    MaxSmartDiscovery.discover_maxsmart
+    async def async_step_discovery(
+        self, discovery_info: Optional[Dict[str, Any]] = None
+    ) -> FlowResult:
+        """Handle discovery step for individual device flows."""
+        if discovery_info and "device_data" in discovery_info:
+            device = discovery_info["device_data"]
+            device_title = discovery_info.get("device_title", device["name"])
+            
+            # Check if already configured
+            if self._is_device_configured(device["sn"]):
+                return self.async_abort(reason="device_already_configured")
+                
+            # Set unique_id for this flow
+            await self.async_set_unique_id(device["sn"])
+            self._abort_if_unique_id_configured()
+            
+            # Store device and go to customization
+            self._discovered_device = device
+            return await self.async_step_customize_names()
+        
+        return self.async_abort(reason="no_device")
+
+    async def _async_create_discovery_flows(self, devices: List[Dict[str, Any]]) -> None:
+        """Create discovery flows for all devices except the current one."""
+        for device in devices:
+            # Skip if already configured
+            if self._is_device_configured(device["sn"]):
+                _LOGGER.info("Device %s already configured, skipping discovery flow", device["sn"])
+                continue
+                
+            # Generate smart title for the device
+            device_title = await self._async_generate_device_title(device)
+            
+            try:
+                # Create discovery flow for this device
+                _LOGGER.info("Creating discovery flow for device: %s", device_title)
+                
+                await self.hass.config_entries.flow.async_init(
+                    DOMAIN,
+                    context={"source": "discovery"},
+                    data={
+                        "device_data": device,
+                        "device_title": device_title
+                    }
                 )
                 
-            # Filter out already configured devices
-            filtered_devices = []
-            for device in devices or []:
-                if not self._is_device_configured(device["sn"]):
-                    filtered_devices.append(device)
-                else:
-                    _LOGGER.info("Device %s already configured, skipping", device["sn"])
-                    
-            return filtered_devices
-            
-        except DiscoveryError as err:
-            _LOGGER.error("Discovery error: %s", err)
-            raise
-        except Exception as err:
-            _LOGGER.error("Unexpected discovery error: %s", err)
-            raise
-
-    async def _async_process_next_device(self) -> FlowResult:
-        """Process the next device in the discovery list."""
-        if self._device_index >= len(self._discovered_devices):
-            # All devices processed
-            return self.async_abort(reason="devices_configured")
-
-        self._current_device = self._discovered_devices[self._device_index]
-        return await self.async_step_customize_names()
+            except Exception as err:
+                _LOGGER.error("Failed to create discovery flow for device %s: %s", device["sn"], err)
 
     async def async_step_customize_names(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
         """Handle device and port name customization."""
-        if not self._current_device:
+        if not self._discovered_device:
             return self.async_abort(reason="no_device")
 
-        device = self._current_device
+        device = self._discovered_device
         errors: Dict[str, str] = {}
 
         if user_input is not None:
             # Validate user input
             validation_errors = self._validate_names(user_input, device)
             if not validation_errors:
-                # Create the config entry
+                # Create the config entry for THIS device
                 entry_data = await self._async_create_entry_data(device, user_input)
                 title = user_input.get("device_name", device["name"])
                 
-                # Move to next device or finish
-                self._device_index += 1
-                
-                result = self.async_create_entry(
+                # Create entry for current device - this ends the flow
+                return self.async_create_entry(
                     title=f"MaxSmart {title}",
                     data=entry_data,
                 )
                 
-                # If there are more devices, continue to next one
-                if self._device_index < len(self._discovered_devices):
-                    # Store the result and continue (this is a bit tricky in config flow)
-                    return await self._async_process_next_device()
-                    
-                return result
             else:
                 errors.update(validation_errors)
 
@@ -188,14 +191,72 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data_schema=schema,
                 errors=errors,
                 description_placeholders={
-                    "device_info": description,
-                    "device_count": f"{self._device_index + 1}/{len(self._discovered_devices)}"
+                    "device_info": description
                 }
             )
             
         except Exception as err:
             _LOGGER.error("Error getting device info for %s: %s", device["ip"], err)
             return self.async_abort(reason="device_info_error")
+
+    async def _async_discover_devices(
+        self, target_ip: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Discover MaxSmart devices with error handling."""
+        try:
+            if target_ip:
+                devices = await MaxSmartDiscovery.discover_maxsmart(ip=target_ip)
+            else:
+                devices = await MaxSmartDiscovery.discover_maxsmart()
+                
+            # Filter out already configured devices
+            filtered_devices = []
+            for device in devices or []:
+                if not self._is_device_configured(device["sn"]):
+                    filtered_devices.append(device)
+                else:
+                    _LOGGER.info("Device %s already configured, skipping", device["sn"])
+                    
+            return filtered_devices
+            
+        except DiscoveryError as err:
+            _LOGGER.error("Discovery error: %s", err)
+            raise
+        except Exception as err:
+            _LOGGER.error("Unexpected discovery error: %s", err)
+            raise
+
+    async def _async_generate_device_title(self, device: Dict[str, Any]) -> str:
+        """Generate a smart title for the device based on available info."""
+        device_ip = device["ip"]
+        device_sn = device["sn"]
+        
+        try:
+            # Try to get device custom name
+            device_obj = MaxSmartDevice(device_ip)
+            await device_obj.initialize_device()
+            
+            try:
+                port_names_dict = await device_obj.retrieve_port_names()
+                if port_names_dict and "Port 0" in port_names_dict:
+                    # Device name available: "Salon (172.30.47.76, ABC123)"
+                    device_name = port_names_dict["Port 0"]
+                    return f"{device_name} ({device_ip}, {device_sn})"
+                else:
+                    raise ValueError("No custom name available")
+                    
+            except Exception:
+                # No custom name: "172.30.47.76 (ABC123)"
+                return f"{device_ip} ({device_sn})"
+                
+        except Exception as err:
+            _LOGGER.warning("Could not get device info for title: %s", err)
+            # Fallback: "172.30.47.76 (ABC123)"
+            return f"{device_ip} ({device_sn})"
+            
+        finally:
+            if 'device_obj' in locals():
+                await device_obj.close()
 
     async def _async_get_device_info(self, device: Dict[str, Any]) -> Dict[str, Any]:
         """Get device information including port names."""
@@ -219,9 +280,9 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     raise ValueError("No port names available")
                     
             except Exception:
-                # Fallback to defaults
+                # Fallback to defaults - utilise IP comme nom de device si pas de noms
                 num_ports = len(device.get("pname", [])) or 1
-                device_name = device["name"]
+                device_name = device["ip"]  # IP comme nom par défaut
                 port_names = [f"Port {i}" for i in range(1, num_ports + 1)]
                 
             return {

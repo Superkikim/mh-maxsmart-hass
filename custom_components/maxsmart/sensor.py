@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfPower
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -67,7 +67,7 @@ async def async_setup_entry(
         )
     
     async_add_entities(entities)
-    _LOGGER.debug("Added %d MaxSmart power sensor entities", len(entities))
+    _LOGGER.info("Added %d MaxSmart power sensor entities", len(entities))
 
 class MaxSmartPowerSensor(CoordinatorEntity[MaxSmartCoordinator], SensorEntity):
     """Representation of a MaxSmart power consumption sensor."""
@@ -100,6 +100,9 @@ class MaxSmartPowerSensor(CoordinatorEntity[MaxSmartCoordinator], SensorEntity):
         self._attr_native_unit_of_measurement = UnitOfPower.WATT
         self._attr_suggested_display_precision = 1
         
+        # Force should_poll to False (should be automatic with CoordinatorEntity)
+        self._attr_should_poll = False
+        
         self._attr_device_info = {
             "identifiers": {(DOMAIN, device_unique_id)},
             "name": f"Maxsmart {device_name}",
@@ -111,32 +114,54 @@ class MaxSmartPowerSensor(CoordinatorEntity[MaxSmartCoordinator], SensorEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        return self.coordinator.is_available and super().available
+        # Check both coordinator availability and parent availability
+        coord_available = self.coordinator.is_available
+        parent_available = super().available
+        
+        _LOGGER.debug(
+            "Sensor %s availability check: coordinator=%s, parent=%s, data=%s",
+            self._attr_name, coord_available, parent_available, 
+            bool(self.coordinator.data)
+        )
+        
+        return coord_available and parent_available
 
     @property
     def native_value(self) -> Optional[float]:
         """Return the current power consumption in watts."""
         if not self.coordinator.data:
+            _LOGGER.debug("Sensor %s: No coordinator data available", self._attr_name)
             return None
             
         try:
             watt_list = self.coordinator.data.get("watt", [])
             
+            if not watt_list:
+                _LOGGER.debug("Sensor %s: Empty watt list in coordinator data", self._attr_name)
+                return None
+            
             if self._port_id == 0:  # Master sensor - total consumption
                 # Sum all individual port consumptions
                 total_power = sum(float(watt) for watt in watt_list)
-                return round(total_power, 1)
+                result = round(total_power, 1)
+                _LOGGER.debug("Sensor %s (Master): Total power = %.1fW from %s", 
+                            self._attr_name, result, watt_list)
+                return result
                 
             else:  # Individual port sensor
                 if 1 <= self._port_id <= len(watt_list):
                     power = float(watt_list[self._port_id - 1])
-                    return round(power, 1)
+                    result = round(power, 1)
+                    _LOGGER.debug("Sensor %s (Port %d): Power = %.1fW", 
+                                self._attr_name, self._port_id, result)
+                    return result
                 else:
-                    _LOGGER.warning("Invalid port_id %d for power data", self._port_id)
+                    _LOGGER.warning("Sensor %s: Invalid port_id %d for watt_list length %d", 
+                                  self._attr_name, self._port_id, len(watt_list))
                     return None
                     
         except (ValueError, TypeError, IndexError) as err:
-            _LOGGER.error("Error getting power data for port %d: %s", self._port_id, err)
+            _LOGGER.error("Sensor %s: Error getting power data: %s", self._attr_name, err)
             return None
 
     @property
@@ -147,6 +172,11 @@ class MaxSmartPowerSensor(CoordinatorEntity[MaxSmartCoordinator], SensorEntity):
             "device_ip": self.coordinator.device_ip,
             "firmware_version": self._device_version,
         }
+        
+        # Add coordinator data info for debugging
+        if self.coordinator.data:
+            attributes["last_coordinator_update"] = str(self.coordinator.last_update_success_time)
+            attributes["coordinator_update_count"] = getattr(self.coordinator, '_update_count', 0)
         
         # Add switch state information
         if self.coordinator.data:
@@ -162,7 +192,8 @@ class MaxSmartPowerSensor(CoordinatorEntity[MaxSmartCoordinator], SensorEntity):
                         attributes["switch_state"] = "on" if switch_list[self._port_id - 1] == 1 else "off"
                         
             except (TypeError, IndexError) as err:
-                _LOGGER.debug("Could not get switch state for attributes: %s", err)
+                _LOGGER.debug("Sensor %s: Could not get switch state for attributes: %s", 
+                            self._attr_name, err)
         
         # Add data format information (useful for debugging)
         if hasattr(self.coordinator.device, '_watt_format'):
@@ -189,4 +220,11 @@ class MaxSmartPowerSensor(CoordinatorEntity[MaxSmartCoordinator], SensorEntity):
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
         await super().async_added_to_hass()
-        _LOGGER.debug("Added MaxSmart power sensor: %s", self._attr_name)
+        _LOGGER.info("Added MaxSmart power sensor: %s (Port %d)", self._attr_name, self._port_id)
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        _LOGGER.debug("Sensor %s: Coordinator update received, data available: %s", 
+                     self._attr_name, bool(self.coordinator.data))
+        super()._handle_coordinator_update()

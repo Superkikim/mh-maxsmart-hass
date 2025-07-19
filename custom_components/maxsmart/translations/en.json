@@ -13,7 +13,7 @@
       },
       "customize_names": {
         "title": "Customize Device Names",
-        "description": "Customize the names for your MaxSmart device and its ports. These names will be used in Home Assistant.\n\n{device_info}\n\nDevice {device_count}",
+        "description": "Customize the names for your MaxSmart device and its ports. These names will be used in Home Assistant.\n\n{device_info}",
         "data": {
           "device_name": "Device Name",
           "port_1_name": "Port 1 Name",
@@ -32,6 +32,16 @@
           "port_5_name": "Name for port 5",
           "port_6_name": "Name for port 6"
         }
+      },
+      "select_device": {
+        "title": "Select MaxSmart Device",
+        "description": "Found {count} MaxSmart devices. Select which device you want to configure.",
+        "data": {
+          "device": "Device"
+        },
+        "data_description": {
+          "device": "Choose the MaxSmart device to configure"
+        }
       }
     },
     "error": {
@@ -46,8 +56,9 @@
       "name_duplicate": "This name is already used. Please choose a different name."
     },
     "abort": {
-      "devices_configured": "All discovered devices have been configured successfully.",
+      "devices_found": "Found {count} MaxSmart devices. Each device will appear as a separate integration to configure.",
       "device_already_configured": "This device is already configured in Home Assistant.",
+      "devices_configured": "All discovered devices have been configured successfully.",
       "no_device": "No device selected for configuration.",
       "single_instance_allowed": "Only one instance of MaxSmart integration is allowed."
     }

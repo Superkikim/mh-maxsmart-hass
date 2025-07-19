@@ -13,7 +13,7 @@
       },
       "customize_names": {
         "title": "Gerätenamen anpassen",
-        "description": "Passen Sie die Namen Ihres MaxSmart-Geräts und seiner Anschlüsse an. Diese Namen werden in Home Assistant verwendet.\n\n{device_info}\n\nGerät {device_count}",
+        "description": "Passen Sie die Namen Ihres MaxSmart-Geräts und seiner Anschlüsse an. Diese Namen werden in Home Assistant verwendet.\n\n{device_info}",
         "data": {
           "device_name": "Gerätename",
           "port_1_name": "Name für Anschluss 1",
@@ -32,6 +32,16 @@
           "port_5_name": "Name für Anschluss 5",
           "port_6_name": "Name für Anschluss 6"
         }
+      },
+      "select_device": {
+        "title": "MaxSmart-Gerät auswählen",
+        "description": "{count} MaxSmart-Geräte gefunden. Wählen Sie das Gerät aus, das Sie konfigurieren möchten.",
+        "data": {
+          "device": "Gerät"
+        },
+        "data_description": {
+          "device": "Wählen Sie das zu konfigurierende MaxSmart-Gerät aus"
+        }
       }
     },
     "error": {
@@ -46,8 +56,9 @@
       "name_duplicate": "Dieser Name wird bereits verwendet. Bitte wählen Sie einen anderen Namen."
     },
     "abort": {
-      "devices_configured": "Alle erkannten Geräte wurden erfolgreich konfiguriert.",
+      "devices_found": "{count} MaxSmart-Geräte gefunden. Jedes Gerät erscheint als separate Integration zur Konfiguration.",
       "device_already_configured": "Dieses Gerät ist bereits in Home Assistant konfiguriert.",
+      "devices_configured": "Alle erkannten Geräte wurden erfolgreich konfiguriert.",
       "no_device": "Kein Gerät für die Konfiguration ausgewählt.",
       "single_instance_allowed": "Es ist nur eine Instanz der MaxSmart-Integration erlaubt."
     }
