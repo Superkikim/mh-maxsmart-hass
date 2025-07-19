@@ -1,5 +1,5 @@
 # custom_components/maxsmart/switch.py
-"""Platform for switch integration."""
+"""Platform for switch integration using entity factory."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import MaxSmartCoordinator
+from .entity_factory import MaxSmartEntityFactory
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,43 +23,28 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up MaxSmart switches from a config entry."""
+    """Set up MaxSmart switches from a config entry using entity factory."""
     coordinator: MaxSmartCoordinator = hass.data[DOMAIN][config_entry.entry_id]
     
-    device_data = config_entry.data
-    device_unique_id = device_data["device_unique_id"]
-    device_name = device_data["device_name"]
+    # Create entity factory
+    factory = MaxSmartEntityFactory(coordinator, config_entry)
     
+    # Generate switch entity configurations
+    switch_configs = factory.create_switch_entities()
+    
+    # Create actual switch entities
     entities = []
+    for config in switch_configs:
+        entities.append(MaxSmartSwitchEntity(**config))
     
-    # Create master switch (port 0)
-    entities.append(
-        MaxSmartSwitchEntity(
-            coordinator=coordinator,
-            device_unique_id=device_unique_id,
-            device_name=device_name,
-            port_id=0,
-            port_name="Master",
-        )
-    )
+    async_add_entities(entities, True)
     
-    # Create individual port switches (assume 6 ports for now)
-    for port_id in range(1, 7):
-        entities.append(
-            MaxSmartSwitchEntity(
-                coordinator=coordinator,
-                device_unique_id=device_unique_id,
-                device_name=device_name,
-                port_id=port_id,
-                port_name=f"Port {port_id}",
-            )
-        )
-    
-    async_add_entities(entities)
-    _LOGGER.info("Added %d MaxSmart switch entities", len(entities))
+    expected_count, _ = factory.get_entity_counts()
+    _LOGGER.info("Added %d/%d MaxSmart switch entities for %s", 
+                len(entities), expected_count, factory.device_name)
 
 class MaxSmartSwitchEntity(CoordinatorEntity[MaxSmartCoordinator], SwitchEntity):
-    """MaxSmart switch entity."""
+    """MaxSmart switch entity with smart capabilities."""
 
     def __init__(
         self,
@@ -67,6 +53,11 @@ class MaxSmartSwitchEntity(CoordinatorEntity[MaxSmartCoordinator], SwitchEntity)
         device_name: str,
         port_id: int,
         port_name: str,
+        unique_id: str,
+        name: str,
+        device_info: dict,
+        is_master: bool,
+        **kwargs
     ) -> None:
         """Initialize the switch."""
         super().__init__(coordinator)
@@ -75,14 +66,19 @@ class MaxSmartSwitchEntity(CoordinatorEntity[MaxSmartCoordinator], SwitchEntity)
         self._device_name = device_name
         self._port_id = port_id
         self._port_name = port_name
+        self._is_master = is_master
         
-        self._attr_unique_id = f"{device_unique_id}_{port_id}"
-        self._attr_name = f"{device_name} {port_name}"
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, device_unique_id)},
-            "name": f"MaxSmart {device_name}",
-            "manufacturer": "Max Hauri",
-            "model": "MaxSmart Power Station",
+        # Entity attributes
+        self._attr_unique_id = unique_id
+        self._attr_name = name
+        self._attr_device_info = device_info
+        
+        # Additional attributes for diagnostics
+        self._attr_extra_state_attributes = {
+            "port_id": port_id,
+            "port_name": port_name,
+            "is_master": is_master,
+            "device_ip": coordinator.device_ip,
         }
 
     @property
@@ -99,20 +95,58 @@ class MaxSmartSwitchEntity(CoordinatorEntity[MaxSmartCoordinator], SwitchEntity)
         try:
             switch_list = self.coordinator.data.get("switch", [])
             
-            if self._port_id == 0:  # Master switch
+            if not switch_list:
+                return None
+                
+            if self._is_master:
+                # Master switch - true if ANY port is on
                 return any(state == 1 for state in switch_list)
-            else:  # Individual port
+            else:
+                # Individual port switch
                 if 1 <= self._port_id <= len(switch_list):
                     return switch_list[self._port_id - 1] == 1
                 return None
                     
-        except (TypeError, IndexError):
+        except (TypeError, IndexError) as err:
+            _LOGGER.debug("Error getting switch state for port %d: %s", self._port_id, err)
             return None
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
-        await self.coordinator.async_turn_on(self._port_id)
+        try:
+            success = await self.coordinator.async_turn_on(self._port_id)
+            if not success:
+                _LOGGER.error("Failed to turn on %s (port %d)", self._attr_name, self._port_id)
+            else:
+                _LOGGER.debug("Successfully turned on %s (port %d)", self._attr_name, self._port_id)
+        except Exception as err:
+            _LOGGER.error("Error turning on %s (port %d): %s", self._attr_name, self._port_id, err)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        await self.coordinator.async_turn_off(self._port_id)
+        try:
+            success = await self.coordinator.async_turn_off(self._port_id)
+            if not success:
+                _LOGGER.error("Failed to turn off %s (port %d)", self._attr_name, self._port_id)
+            else:
+                _LOGGER.debug("Successfully turned off %s (port %d)", self._attr_name, self._port_id)
+        except Exception as err:
+            _LOGGER.error("Error turning off %s (port %d): %s", self._attr_name, self._port_id, err)
+
+    @property
+    def icon(self) -> str:
+        """Return the icon for this switch."""
+        if self._is_master:
+            return "mdi:power-socket-eu"
+        else:
+            return "mdi:power-socket"
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity added to hass."""
+        await super().async_added_to_hass()
+        _LOGGER.debug("Added switch entity: %s (port %d)", self._attr_name, self._port_id)
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Handle entity removal."""
+        await super().async_will_remove_from_hass()
+        _LOGGER.debug("Removing switch entity: %s (port %d)", self._attr_name, self._port_id)

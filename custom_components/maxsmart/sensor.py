@@ -1,12 +1,16 @@
 # custom_components/maxsmart/sensor.py
-"""Platform for sensor integration."""
+"""Platform for sensor integration using entity factory."""
 
 from __future__ import annotations
 
 import logging
 from typing import Optional
 
-from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorDeviceClass,
+    SensorStateClass,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfPower
 from homeassistant.core import HomeAssistant
@@ -15,6 +19,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import MaxSmartCoordinator
+from .entity_factory import MaxSmartEntityFactory
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,43 +28,28 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up MaxSmart sensors from a config entry."""
+    """Set up MaxSmart sensors from a config entry using entity factory."""
     coordinator: MaxSmartCoordinator = hass.data[DOMAIN][config_entry.entry_id]
     
-    device_data = config_entry.data
-    device_unique_id = device_data["device_unique_id"]
-    device_name = device_data["device_name"]
+    # Create entity factory
+    factory = MaxSmartEntityFactory(coordinator, config_entry)
     
+    # Generate sensor entity configurations
+    sensor_configs = factory.create_sensor_entities()
+    
+    # Create actual sensor entities
     entities = []
+    for config in sensor_configs:
+        entities.append(MaxSmartPowerSensor(**config))
     
-    # Create master power sensor (total consumption)
-    entities.append(
-        MaxSmartPowerSensor(
-            coordinator=coordinator,
-            device_unique_id=device_unique_id,
-            device_name=device_name,
-            port_id=0,
-            port_name="Total Power",
-        )
-    )
+    async_add_entities(entities, True)
     
-    # Create individual port power sensors (assume 6 ports)
-    for port_id in range(1, 7):
-        entities.append(
-            MaxSmartPowerSensor(
-                coordinator=coordinator,
-                device_unique_id=device_unique_id,
-                device_name=device_name,
-                port_id=port_id,
-                port_name=f"Port {port_id} Power",
-            )
-        )
-    
-    async_add_entities(entities)
-    _LOGGER.info("Added %d MaxSmart sensor entities", len(entities))
+    _, expected_count = factory.get_entity_counts()
+    _LOGGER.info("Added %d/%d MaxSmart sensor entities for %s", 
+                len(entities), expected_count, factory.device_name)
 
 class MaxSmartPowerSensor(CoordinatorEntity[MaxSmartCoordinator], SensorEntity):
-    """MaxSmart power sensor entity."""
+    """MaxSmart power sensor entity with smart capabilities."""
 
     def __init__(
         self,
@@ -68,6 +58,11 @@ class MaxSmartPowerSensor(CoordinatorEntity[MaxSmartCoordinator], SensorEntity):
         device_name: str,
         port_id: int,
         port_name: str,
+        unique_id: str,
+        name: str,
+        device_info: dict,
+        is_total: bool,
+        **kwargs
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
@@ -76,19 +71,23 @@ class MaxSmartPowerSensor(CoordinatorEntity[MaxSmartCoordinator], SensorEntity):
         self._device_name = device_name
         self._port_id = port_id
         self._port_name = port_name
+        self._is_total = is_total
         
-        self._attr_unique_id = f"{device_unique_id}_{port_id}_power"
-        self._attr_name = f"{device_name} {port_name}"
+        # Entity attributes
+        self._attr_unique_id = unique_id
+        self._attr_name = name
+        self._attr_device_info = device_info
         self._attr_device_class = SensorDeviceClass.POWER
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_native_unit_of_measurement = UnitOfPower.WATT
         self._attr_suggested_display_precision = 1
         
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, device_unique_id)},
-            "name": f"MaxSmart {device_name}",
-            "manufacturer": "Max Hauri",
-            "model": "MaxSmart Power Station",
+        # Additional attributes for diagnostics
+        self._attr_extra_state_attributes = {
+            "port_id": port_id,
+            "port_name": port_name,
+            "is_total": is_total,
+            "device_ip": coordinator.device_ip,
         }
 
     @property
@@ -105,12 +104,102 @@ class MaxSmartPowerSensor(CoordinatorEntity[MaxSmartCoordinator], SensorEntity):
         try:
             watt_list = self.coordinator.data.get("watt", [])
             
-            if self._port_id == 0:  # Total power
-                return sum(float(watt) for watt in watt_list)
-            else:  # Individual port
+            if not watt_list:
+                return None
+                
+            if self._is_total:
+                # Total power - sum all ports
+                try:
+                    total = sum(float(watt) for watt in watt_list)
+                    return round(total, 1)
+                except (ValueError, TypeError) as err:
+                    _LOGGER.debug("Error calculating total power: %s", err)
+                    return None
+            else:
+                # Individual port power
                 if 1 <= self._port_id <= len(watt_list):
-                    return float(watt_list[self._port_id - 1])
+                    try:
+                        value = float(watt_list[self._port_id - 1])
+                        return round(value, 1)
+                    except (ValueError, TypeError) as err:
+                        _LOGGER.debug("Error getting power for port %d: %s", self._port_id, err)
+                        return None
                 return None
                     
-        except (ValueError, TypeError, IndexError):
+        except (TypeError, IndexError) as err:
+            _LOGGER.debug("Error getting power data for port %d: %s", self._port_id, err)
             return None
+
+    @property
+    def icon(self) -> str:
+        """Return the icon for this sensor."""
+        if self._is_total:
+            return "mdi:flash"
+        else:
+            # Different icons based on power level
+            power = self.native_value
+            if power is None or power == 0:
+                return "mdi:flash-off"
+            elif power < 10:
+                return "mdi:flash-outline"
+            elif power < 100:
+                return "mdi:flash"
+            else:
+                return "mdi:lightning-bolt"
+
+    @property
+    def entity_category(self) -> Optional[str]:
+        """Return the entity category."""
+        # Power sensors are primary entities, not diagnostic
+        return None
+
+    def _update_extra_attributes(self) -> None:
+        """Update extra state attributes with current data."""
+        if not self.coordinator.data:
+            return
+            
+        try:
+            watt_list = self.coordinator.data.get("watt", [])
+            switch_list = self.coordinator.data.get("switch", [])
+            
+            # Add switch state for this port
+            if self._is_total:
+                active_ports = sum(1 for state in switch_list if state == 1) if switch_list else 0
+                self._attr_extra_state_attributes.update({
+                    "active_ports": active_ports,
+                    "total_ports": len(switch_list) if switch_list else 0,
+                })
+            else:
+                if 1 <= self._port_id <= len(switch_list):
+                    port_state = "on" if switch_list[self._port_id - 1] == 1 else "off"
+                    self._attr_extra_state_attributes.update({
+                        "switch_state": port_state,
+                    })
+                    
+            # Add timestamp of last update
+            self._attr_extra_state_attributes.update({
+                "last_update": self.coordinator.last_update_success_time,
+            })
+            
+        except Exception as err:
+            _LOGGER.debug("Error updating extra attributes for %s: %s", self._attr_name, err)
+
+    async def async_update(self) -> None:
+        """Update the entity."""
+        await super().async_update()
+        self._update_extra_attributes()
+
+    @property
+    def should_poll(self) -> bool:
+        """No need to poll. Coordinator handles this."""
+        return False
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity added to hass."""
+        await super().async_added_to_hass()
+        _LOGGER.debug("Added power sensor: %s (port %d)", self._attr_name, self._port_id)
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Handle entity removal."""
+        await super().async_will_remove_from_hass()
+        _LOGGER.debug("Removing power sensor: %s (port %d)", self._attr_name, self._port_id)
