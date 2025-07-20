@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "MaxSmart Device Discovery",
-        "description": "Searching for MaxSmart devices on your network. If no devices are found automatically, you can enter an IP address manually.",
+        "description": "Searching for MaxSmart devices on your network. If no devices are found automatically, enter an IP address manually.",
         "data": {
           "ip_address": "IP Address"
         },
@@ -32,22 +32,12 @@
           "port_5_name": "Name for port 5",
           "port_6_name": "Name for port 6"
         }
-      },
-      "select_device": {
-        "title": "Select MaxSmart Device",
-        "description": "Found {count} MaxSmart devices. Select which device you want to configure.",
-        "data": {
-          "device": "Device"
-        },
-        "data_description": {
-          "device": "Choose the MaxSmart device to configure"
-        }
       }
     },
     "error": {
       "discovery_failed": "Automatic discovery failed. Please try entering an IP address manually.",
-      "no_device_found": "No MaxSmart device found at this IP address. Please check the IP and ensure the device is powered on.",
-      "connection_error": "Could not connect to the device. Please check the IP address and network connection.",
+      "no_device_found": "No MaxSmart device found at this IP address. Check the IP and ensure the device is powered on.",
+      "connection_error": "Could not connect to the device. Check the IP address and network connection.",
       "invalid_ip": "Please enter a valid IP address (e.g., 192.168.1.100).",
       "device_info_error": "Could not retrieve device information. Please try again.",
       "name_required": "This field is required and cannot be empty.",
@@ -67,7 +57,7 @@
     "step": {
       "init": {
         "title": "Rename MaxSmart Device",
-        "description": "Change the names of your MaxSmart device and its ports. The changes will be applied immediately.",
+        "description": "Change the names of your MaxSmart device and its ports. Changes will be applied immediately.",
         "data": {
           "device_name": "Device Name",
           "port_1_name": "Port 1 Name",
@@ -107,6 +97,9 @@
     "sensor": {
       "power": {
         "name": "{device_name} {port_name} Power"
+      },
+      "total_power": {
+        "name": "{device_name} Total Power"
       }
     }
   },
@@ -116,6 +109,28 @@
       "turned_off": "Turned off",
       "power_above": "Power consumption above",
       "power_below": "Power consumption below"
+    }
+  },
+  "services": {
+    "turn_on_port": {
+      "name": "Turn on port",
+      "description": "Turn on a specific port on the MaxSmart device",
+      "fields": {
+        "port": {
+          "name": "Port",
+          "description": "Port number to turn on (1-6, or 0 for all ports)"
+        }
+      }
+    },
+    "turn_off_port": {
+      "name": "Turn off port", 
+      "description": "Turn off a specific port on the MaxSmart device",
+      "fields": {
+        "port": {
+          "name": "Port",
+          "description": "Port number to turn off (1-6, or 0 for all ports)"
+        }
+      }
     }
   }
 }

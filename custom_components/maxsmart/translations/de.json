@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "MaxSmart Geräteerkennung",
-        "description": "Suche nach MaxSmart-Geräten in Ihrem Netzwerk. Falls keine Geräte automatisch gefunden werden, können Sie eine IP-Adresse manuell eingeben.",
+        "description": "Suche nach MaxSmart-Geräten in Ihrem Netzwerk. Falls keine Geräte automatisch gefunden werden, geben Sie eine IP-Adresse manuell ein.",
         "data": {
           "ip_address": "IP-Adresse"
         },
@@ -31,16 +31,6 @@
           "port_4_name": "Name für Anschluss 4",
           "port_5_name": "Name für Anschluss 5",
           "port_6_name": "Name für Anschluss 6"
-        }
-      },
-      "select_device": {
-        "title": "MaxSmart-Gerät auswählen",
-        "description": "{count} MaxSmart-Geräte gefunden. Wählen Sie das Gerät aus, das Sie konfigurieren möchten.",
-        "data": {
-          "device": "Gerät"
-        },
-        "data_description": {
-          "device": "Wählen Sie das zu konfigurierende MaxSmart-Gerät aus"
         }
       }
     },
@@ -107,6 +97,9 @@
     "sensor": {
       "power": {
         "name": "{device_name} {port_name} Leistung"
+      },
+      "total_power": {
+        "name": "{device_name} Gesamtleistung"
       }
     }
   },
@@ -116,6 +109,28 @@
       "turned_off": "Ausgeschaltet",
       "power_above": "Verbrauch über",
       "power_below": "Verbrauch unter"
+    }
+  },
+  "services": {
+    "turn_on_port": {
+      "name": "Anschluss einschalten",
+      "description": "Einen bestimmten Anschluss am MaxSmart-Gerät einschalten",
+      "fields": {
+        "port": {
+          "name": "Anschluss",
+          "description": "Anschlussnummer zum Einschalten (1-6, oder 0 für alle Anschlüsse)"
+        }
+      }
+    },
+    "turn_off_port": {
+      "name": "Anschluss ausschalten",
+      "description": "Einen bestimmten Anschluss am MaxSmart-Gerät ausschalten",
+      "fields": {
+        "port": {
+          "name": "Anschluss",
+          "description": "Anschlussnummer zum Ausschalten (1-6, oder 0 für alle Anschlüsse)"
+        }
+      }
     }
   }
 }

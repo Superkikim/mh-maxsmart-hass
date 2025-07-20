@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Découverte des appareils MaxSmart",
-        "description": "Recherche d'appareils MaxSmart sur votre réseau. Si aucun appareil n'est trouvé automatiquement, vous pouvez saisir une adresse IP manuellement.",
+        "description": "Recherche d'appareils MaxSmart sur votre réseau. Si aucun appareil n'est trouvé automatiquement, saisissez une adresse IP manuellement.",
         "data": {
           "ip_address": "Adresse IP"
         },
@@ -31,16 +31,6 @@
           "port_4_name": "Nom du port 4",
           "port_5_name": "Nom du port 5",
           "port_6_name": "Nom du port 6"
-        }
-      },
-      "select_device": {
-        "title": "Sélectionner l'appareil MaxSmart",
-        "description": "{count} appareils MaxSmart trouvés. Sélectionnez l'appareil que vous souhaitez configurer.",
-        "data": {
-          "device": "Appareil"
-        },
-        "data_description": {
-          "device": "Choisissez l'appareil MaxSmart à configurer"
         }
       }
     },
@@ -107,6 +97,9 @@
     "sensor": {
       "power": {
         "name": "{device_name} {port_name} Puissance"
+      },
+      "total_power": {
+        "name": "{device_name} Puissance Totale"
       }
     }
   },
@@ -116,6 +109,28 @@
       "turned_off": "Éteint",
       "power_above": "Consommation au-dessus de",
       "power_below": "Consommation en-dessous de"
+    }
+  },
+  "services": {
+    "turn_on_port": {
+      "name": "Allumer le port",
+      "description": "Allumer un port spécifique sur l'appareil MaxSmart",
+      "fields": {
+        "port": {
+          "name": "Port",
+          "description": "Numéro du port à allumer (1-6, ou 0 pour tous les ports)"
+        }
+      }
+    },
+    "turn_off_port": {
+      "name": "Éteindre le port",
+      "description": "Éteindre un port spécifique sur l'appareil MaxSmart",
+      "fields": {
+        "port": {
+          "name": "Port",
+          "description": "Numéro du port à éteindre (1-6, ou 0 pour tous les ports)"
+        }
+      }
     }
   }
 }

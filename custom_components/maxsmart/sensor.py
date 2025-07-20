@@ -176,10 +176,11 @@ class MaxSmartPowerSensor(CoordinatorEntity[MaxSmartCoordinator], SensorEntity):
                         "switch_state": port_state,
                     })
                     
-            # Add timestamp of last update
-            self._attr_extra_state_attributes.update({
-                "last_update": self.coordinator.last_update_success_time,
-            })
+            # Add timestamp of last update - FIXED: use last_update_success
+            if self.coordinator.last_update_success:
+                self._attr_extra_state_attributes.update({
+                    "last_update": self.coordinator.last_update_success,
+                })
             
         except Exception as err:
             _LOGGER.debug("Error updating extra attributes for %s: %s", self._attr_name, err)

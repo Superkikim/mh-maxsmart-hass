@@ -1,5 +1,5 @@
 # custom_components/maxsmart/entity_factory.py
-"""Smart entity creation based on device capabilities."""
+"""Enhanced entity creation with hardware information and improved device detection."""
 
 from __future__ import annotations
 
@@ -14,10 +14,10 @@ from .coordinator import MaxSmartCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 class MaxSmartEntityFactory:
-    """Factory for creating MaxSmart entities based on device capabilities."""
+    """Enhanced factory for creating MaxSmart entities with hardware information."""
     
     def __init__(self, coordinator: MaxSmartCoordinator, config_entry: ConfigEntry):
-        """Initialize the entity factory."""
+        """Initialize the enhanced entity factory."""
         self.coordinator = coordinator
         self.config_entry = config_entry
         self.device_data = config_entry.data
@@ -42,30 +42,67 @@ class MaxSmartEntityFactory:
         """Get firmware version."""
         return self.device_data.get("sw_version", "Unknown")
     
+    @property
+    def cpu_id(self) -> str:
+        """Get CPU ID if available."""
+        return self.device_data.get("cpu_id", "")
+    
+    @property
+    def mac_address(self) -> str:
+        """Get MAC address if available."""
+        return self.device_data.get("mac_address", "")
+    
+    @property
+    def identification_method(self) -> str:
+        """Get identification method used."""
+        return self.device_data.get("identification_method", "fallback")
+    
     def get_port_count(self) -> int:
         """
-        Determine number of ports based on serial number or device data.
+        Determine number of ports using enhanced detection methods.
         
         Returns:
             Number of ports (1 or 6)
         """
+        # Method 1: Use stored port count if available
+        stored_count = self.device_data.get("port_count")
+        if stored_count and isinstance(stored_count, int) and stored_count in [1, 6]:
+            _LOGGER.debug("Using stored port count: %d", stored_count)
+            return stored_count
+        
+        # Method 2: Check serial number pattern (legacy method)
         try:
-            # Check serial number pattern (4th character indicates port count)
             serial = self.device_unique_id
-            if len(serial) >= 4:
-                port_char = serial[3]
-                if port_char == '1':
-                    return 1  # Single port device
-                elif port_char == '6':
-                    return 6  # 6-port device
-                    
-            # Fallback: assume 6 ports for power stations
-            _LOGGER.debug("Unable to determine port count from serial %s, assuming 6 ports", serial)
-            return 6
-            
+            if serial.startswith(("cpu_", "mac_", "sn_")):
+                # Extract the actual serial/ID part
+                actual_id = serial.split("_", 1)[1]
+                if len(actual_id) >= 4:
+                    # For UDP serials, 4th character indicates port count
+                    if serial.startswith("sn_"):
+                        port_char = actual_id[3]
+                        if port_char == '1':
+                            _LOGGER.debug("Detected 1-port device from serial pattern")
+                            return 1
+                        elif port_char == '6':
+                            _LOGGER.debug("Detected 6-port device from serial pattern")
+                            return 6
         except Exception as err:
-            _LOGGER.warning("Error determining port count: %s, assuming 6 ports", err)
-            return 6
+            _LOGGER.debug("Error parsing device ID for port count: %s", err)
+        
+        # Method 3: Count configured port names
+        configured_ports = 0
+        for port_id in range(1, 7):  # Check up to 6 ports
+            port_key = f"port_{port_id}_name"
+            if port_key in self.device_data:
+                configured_ports = port_id
+        
+        if configured_ports > 0:
+            _LOGGER.debug("Detected %d ports from configured names", configured_ports)
+            return configured_ports
+            
+        # Default fallback - assume 6 ports for power stations
+        _LOGGER.debug("Using default port count: 6")
+        return 6
     
     def get_port_names(self) -> List[str]:
         """
@@ -86,15 +123,16 @@ class MaxSmartEntityFactory:
     
     def get_device_info(self) -> Dict[str, Any]:
         """
-        Generate device info for Home Assistant.
+        Generate enhanced device info for Home Assistant with hardware details.
         
         Returns:
-            Device info dictionary
+            Enhanced device info dictionary with hardware identifiers
         """
         port_count = self.get_port_count()
         model = "MaxSmart Smart Plug" if port_count == 1 else "MaxSmart Power Station"
         
-        return {
+        # Base device info
+        device_info = {
             "identifiers": {("maxsmart", self.device_unique_id)},
             "name": f"MaxSmart {self.device_name}",
             "manufacturer": "Max Hauri", 
@@ -103,13 +141,39 @@ class MaxSmartEntityFactory:
             "via_device": None,
             "configuration_url": f"http://{self.device_ip}",
         }
+        
+        # Add hardware information if available
+        hw_details = []
+        
+        # Add CPU ID
+        if self.cpu_id:
+            hw_details.append(f"CPU: {self.cpu_id[:12]}...")
+            
+        # Add MAC address
+        if self.mac_address:
+            hw_details.append(f"MAC: {self.mac_address}")
+            
+        # Add identification method
+        id_method = self.identification_method.replace('_', ' ').title()
+        hw_details.append(f"ID: {id_method}")
+        
+        # Add hardware details to model description
+        if hw_details:
+            device_info["model"] = f"{model} ({', '.join(hw_details)})"
+            
+        # Add serial number if available (for legacy compatibility)
+        udp_serial = self.device_data.get("udp_serial", "")
+        if udp_serial:
+            device_info["serial_number"] = udp_serial
+            
+        return device_info
     
     def create_switch_entities(self) -> List[Dict[str, Any]]:
         """
-        Create switch entity configurations.
+        Create enhanced switch entity configurations.
         
         Returns:
-            List of switch entity configurations
+            List of switch entity configurations with enhanced metadata
         """
         entities = []
         port_count = self.get_port_count()
@@ -128,6 +192,10 @@ class MaxSmartEntityFactory:
                 "name": f"{self.device_name} Master",
                 "device_info": device_info,
                 "is_master": True,
+                # Enhanced metadata
+                "cpu_id": self.cpu_id,
+                "mac_address": self.mac_address,
+                "identification_method": self.identification_method,
             })
         
         # Individual port switches
@@ -144,17 +212,22 @@ class MaxSmartEntityFactory:
                 "name": f"{self.device_name} {port_name}",
                 "device_info": device_info,
                 "is_master": False,
+                # Enhanced metadata
+                "cpu_id": self.cpu_id,
+                "mac_address": self.mac_address,
+                "identification_method": self.identification_method,
             })
             
-        _LOGGER.debug("Created %d switch entities for device %s", len(entities), self.device_name)
+        _LOGGER.debug("Created %d switch entities for device %s (%s)", 
+                     len(entities), self.device_name, self.identification_method)
         return entities
     
     def create_sensor_entities(self) -> List[Dict[str, Any]]:
         """
-        Create sensor entity configurations.
+        Create enhanced sensor entity configurations.
         
         Returns:
-            List of sensor entity configurations  
+            List of sensor entity configurations with enhanced metadata
         """
         entities = []
         port_count = self.get_port_count()
@@ -173,6 +246,10 @@ class MaxSmartEntityFactory:
                 "name": f"{self.device_name} Total Power",
                 "device_info": device_info,
                 "is_total": True,
+                # Enhanced metadata
+                "cpu_id": self.cpu_id,
+                "mac_address": self.mac_address,
+                "identification_method": self.identification_method,
             })
         
         # Individual port power sensors
@@ -189,9 +266,14 @@ class MaxSmartEntityFactory:
                 "name": f"{self.device_name} {port_name} Power",
                 "device_info": device_info,
                 "is_total": False,
+                # Enhanced metadata
+                "cpu_id": self.cpu_id,
+                "mac_address": self.mac_address,
+                "identification_method": self.identification_method,
             })
             
-        _LOGGER.debug("Created %d sensor entities for device %s", len(entities), self.device_name)
+        _LOGGER.debug("Created %d sensor entities for device %s (%s)", 
+                     len(entities), self.device_name, self.identification_method)
         return entities
     
     def get_entity_counts(self) -> Tuple[int, int]:
@@ -213,3 +295,39 @@ class MaxSmartEntityFactory:
             sensor_count = port_count + 1  # Total + individual ports
             
         return switch_count, sensor_count
+    
+    def get_diagnostics_info(self) -> Dict[str, Any]:
+        """
+        Get comprehensive diagnostics information for troubleshooting.
+        
+        Returns:
+            Dictionary with all device and configuration information
+        """
+        return {
+            # Device identification
+            "device_unique_id": self.device_unique_id,
+            "device_name": self.device_name,
+            "device_ip": self.device_ip,
+            
+            # Hardware information
+            "cpu_id": self.cpu_id,
+            "mac_address": self.mac_address,
+            "udp_serial": self.device_data.get("udp_serial", ""),
+            "identification_method": self.identification_method,
+            
+            # Device capabilities
+            "firmware_version": self.firmware_version,
+            "port_count": self.get_port_count(),
+            "port_names": self.get_port_names(),
+            
+            # Configuration data
+            "config_entry_data": dict(self.device_data),
+            
+            # Entity counts
+            "expected_switches": self.get_entity_counts()[0],
+            "expected_sensors": self.get_entity_counts()[1],
+            
+            # Coordinator info
+            "coordinator_name": self.coordinator.name,
+            "coordinator_device_ip": self.coordinator.device_ip,
+        }
