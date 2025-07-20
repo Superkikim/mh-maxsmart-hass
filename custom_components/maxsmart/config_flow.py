@@ -1,5 +1,5 @@
 # custom_components/maxsmart/config_flow.py
-"""Enhanced config flow with improved device identification and MAC address support."""
+"""Enhanced config flow with improved device identification and filtering."""
 
 from __future__ import annotations
 
@@ -41,22 +41,31 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
-        """Handle the initial step with enhanced discovery."""
+        """Handle the initial step with enhanced discovery and filtering."""
         errors: Dict[str, str] = {}
 
         if user_input is None:
-            # Enhanced auto-discovery
+            # Enhanced auto-discovery with filtering
             try:
                 _LOGGER.debug("Starting enhanced MaxSmart device discovery")
                 devices = await async_discover_devices(enhance_with_hardware=True)
                 
                 if devices:
-                    # Create discovery flows for each device found
-                    discovery_count = 0
+                    # Filter out already configured devices
+                    unconfigured_devices = []
+                    
                     for device in devices:
                         device_id = self._get_device_unique_id(device)
-                        if not self._is_device_configured(device_id):
-                            # Create discovery flow for this device
+                        if not self._is_device_configured_robust(device, device_id):
+                            unconfigured_devices.append(device)
+                        else:
+                            _LOGGER.debug("Device already configured, skipping: %s (%s)", 
+                                        device.get("name", "Unknown"), device.get("ip", "Unknown"))
+                    
+                    if unconfigured_devices:
+                        # Create discovery flows for unconfigured devices only
+                        discovery_count = 0
+                        for device in unconfigured_devices:
                             self.hass.async_create_task(
                                 self.hass.config_entries.flow.async_init(
                                     DOMAIN,
@@ -65,19 +74,19 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                 )
                             )
                             discovery_count += 1
-                    
-                    if discovery_count > 0:
-                        # Discovery cards created - abort this flow
-                        return self.async_abort(
-                            reason="devices_found",
-                            description_placeholders={"count": str(discovery_count)}
-                        )
+                        
+                        if discovery_count > 0:
+                            return self.async_abort(
+                                reason="devices_found",
+                                description_placeholders={"count": str(discovery_count)}
+                            )
                     else:
                         # All devices already configured
+                        _LOGGER.info("All discovered devices are already configured")
                         return self.async_abort(reason="devices_configured")
                         
                 # No devices found - show manual form
-                _LOGGER.info("No devices found automatically, showing manual form")
+                _LOGGER.info("No unconfigured devices found, showing manual form")
                 
             except Exception as err:
                 _LOGGER.warning("Enhanced discovery failed: %s", err)
@@ -98,8 +107,8 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     device = await async_discover_device_by_ip(ip_address, enhance_with_hardware=True)
                     if device:
                         device_id = self._get_device_unique_id(device)
-                        # Check if already configured
-                        if self._is_device_configured(device_id):
+                        # Check if already configured using robust method
+                        if self._is_device_configured_robust(device, device_id):
                             return self.async_abort(reason="device_already_configured")
                         
                         self._discovered_device = device
@@ -127,8 +136,8 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not device_id:
             return self.async_abort(reason="no_device")
             
-        # Check if already configured
-        if self._is_device_configured(device_id):
+        # Check if already configured using robust method
+        if self._is_device_configured_robust(discovery_info, device_id):
             return self.async_abort(reason="device_already_configured")
             
         # Set unique ID to prevent duplicates
@@ -271,6 +280,9 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         port_names = device.get("pname", [])
         if port_names and isinstance(port_names, list):
             return len([name for name in port_names if name])
+        elif port_names is None:
+            # pname: None usually indicates single port device
+            return 1
             
         # Default fallback
         return 6
@@ -343,6 +355,54 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             all(ord(c) < 128 for c in sn) and 
             sn.isprintable()
         )
+
+    def _is_device_configured_robust(self, device: Dict[str, Any], device_id: str) -> bool:
+        """
+        Check if device is already configured using multiple methods.
+        
+        Args:
+            device: Device info from discovery
+            device_id: Generated device ID
+            
+        Returns:
+            True if device is already configured
+        """
+        # Method 1: Check by generated device_id
+        if self._is_device_configured(device_id):
+            return True
+            
+        # Method 2: Check by serial number (legacy entries)
+        device_serial = device.get("sn")
+        if device_serial:
+            for entry in self.hass.config_entries.async_entries(DOMAIN):
+                if (entry.unique_id == device_serial or 
+                    entry.data.get("device_unique_id") == device_serial or
+                    entry.data.get("udp_serial") == device_serial):
+                    return True
+        
+        # Method 3: Check by IP address (devices that changed serial)
+        device_ip = device.get("ip")
+        if device_ip:
+            for entry in self.hass.config_entries.async_entries(DOMAIN):
+                if entry.data.get("device_ip") == device_ip:
+                    return True
+        
+        # Method 4: Check by MAC address (if available)
+        device_mac = device.get("mac_address") or device.get("pclmac")
+        if device_mac:
+            normalized_mac = self._normalize_mac(device_mac)
+            for entry in self.hass.config_entries.async_entries(DOMAIN):
+                entry_mac = entry.data.get("mac_address") or entry.data.get("pclmac")
+                if entry_mac and self._normalize_mac(entry_mac) == normalized_mac:
+                    return True
+        
+        return False
+
+    def _normalize_mac(self, mac_address: str) -> str:
+        """Normalize MAC address for comparison."""
+        if not mac_address:
+            return ""
+        return mac_address.replace(":", "").replace("-", "").lower()
 
     def _is_device_configured(self, device_id: str) -> bool:
         """Check if device is already configured using enhanced ID."""
