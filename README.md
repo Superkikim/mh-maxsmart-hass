@@ -8,6 +8,8 @@
 
 Control your **Max Hauri MaxSmart** smart power strips and plugs directly from Home Assistant! No cloud required - everything works locally on your network.
 
+These are **REVOGI-based devices**. Other REVOGI-based devices might work as well. Feel free to test and come back to me for any feedback. We may work together to make them work.
+
 ## 🎯 What's New in v2025.7.1
 
 - **🏷️ Home Assistant Name Management** - Device and port names managed entirely in HA, independent from device settings!
