@@ -1,13 +1,13 @@
 {
   "domain": "maxsmart",
   "name": "Max Hauri Maxsmart",
-  "version": "2025.7.1",
-  "documentation": "https://github.com/superkikim/mh-maxsmart-hass",
   "codeowners": ["@Superkikim"],
   "config_flow": true,
   "dependencies": [],
+  "documentation": "https://github.com/superkikim/mh-maxsmart-hass",
   "iot_class": "local_polling",
-  "requirements": ["maxsmart>=2.0.3"],
+  "issue_tracker": "https://github.com/superkikim/mh-maxsmart-hass/issues",
   "loggers": ["maxsmart"],
-  "issue_tracker": "https://github.com/superkikim/mh-maxsmart-hass/issues"
+  "requirements": ["maxsmart>=2.0.3"],
+  "version": "2025.7.1"
 }
