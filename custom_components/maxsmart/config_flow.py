@@ -417,7 +417,8 @@ class MaxSmartOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        # Use the parent class property instead of setting directly (HA 2025.12 compatibility)
+        super().__init__()
 
     async def async_step_init(
         self, user_input: Optional[Dict[str, Any]] = None
@@ -431,22 +432,23 @@ class MaxSmartOptionsFlow(config_entries.OptionsFlow):
             if validation_errors:
                 errors.update(validation_errors)
             else:
-                # Update config entry data
-                new_data = {**self.config_entry.data}
+                # Update config entry data using the handler reference
+                config_entry = self.hass.config_entries.async_get_entry(self.handler.config_entry_id)
+                new_data = {**config_entry.data}
                 new_data.update(user_input)
                 
                 self.hass.config_entries.async_update_entry(
-                    self.config_entry,
+                    config_entry,
                     data=new_data
                 )
                 
                 # Reload the integration to apply new names
-                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                await self.hass.config_entries.async_reload(config_entry.entry_id)
                 
                 return self.async_create_entry(title="", data={})
 
-        # Get current values
-        current_data = self.config_entry.data
+        # Get current values using the parent class property
+        current_data = self.hass.config_entries.async_get_entry(self.handler.config_entry_id).data
         port_count = current_data.get("port_count", 6)
 
         # Build schema with current values

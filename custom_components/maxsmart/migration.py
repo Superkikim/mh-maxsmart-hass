@@ -144,6 +144,71 @@ class MaxSmartMigrationManager:
             _LOGGER.debug("Failed to get MAC for %s: %s", ip_address, e)
             return None
 
+    async def _cleanup_obsolete_entities(self, entry: ConfigEntry, enhanced_data: Dict[str, Any]) -> None:
+        """
+        Clean up obsolete entities for 1-port devices that were incorrectly configured with master.
+        
+        Hardware doesn't change! A 1-port device should NEVER have master entities.
+        """
+        try:
+            detected_port_count = enhanced_data.get("port_count", 6)
+            device_unique_id = enhanced_data["device_unique_id"]
+            
+            # ONLY clean up for 1-port devices that have master entities
+            if detected_port_count != 1:
+                _LOGGER.debug("Device %s has %d ports, no cleanup needed", entry.title, detected_port_count)
+                return
+            
+            _LOGGER.info("Device %s is 1-port, checking for incorrect master entities to remove", entry.title)
+            
+            # Get entity registry (correct import)
+            from homeassistant.helpers import entity_registry as er
+            entity_registry = er.async_get(self.hass)
+            
+            entities_to_remove = []
+            
+            # Remove master switch (port 0) - 1-port devices shouldn't have master
+            master_switch_id = f"{device_unique_id}_0"
+            master_entity = entity_registry.async_get_entity_id("switch", "maxsmart", master_switch_id)
+            if master_entity:
+                entities_to_remove.append(("switch", master_entity, "incorrect master switch"))
+            
+            # Remove total power sensor (port 0) - 1-port devices shouldn't have total power
+            total_power_id = f"{device_unique_id}_0_power"
+            total_entity = entity_registry.async_get_entity_id("sensor", "maxsmart", total_power_id)
+            if total_entity:
+                entities_to_remove.append(("sensor", total_entity, "incorrect total power sensor"))
+            
+            # Remove any incorrect port entities beyond port 1
+            for port_id in range(2, 7):  # 1-port device should only have port 1
+                # Remove switch
+                port_switch_id = f"{device_unique_id}_{port_id}"
+                port_switch_entity = entity_registry.async_get_entity_id("switch", "maxsmart", port_switch_id)
+                if port_switch_entity:
+                    entities_to_remove.append(("switch", port_switch_entity, f"incorrect port {port_id} switch"))
+                
+                # Remove power sensor
+                port_power_id = f"{device_unique_id}_{port_id}_power"
+                port_power_entity = entity_registry.async_get_entity_id("sensor", "maxsmart", port_power_id)
+                if port_power_entity:
+                    entities_to_remove.append(("sensor", port_power_entity, f"incorrect port {port_id} power sensor"))
+            
+            # Actually remove the incorrect entities
+            for domain, entity_id, description in entities_to_remove:
+                try:
+                    entity_registry.async_remove(entity_id)
+                    _LOGGER.info("Removed %s: %s", description, entity_id)
+                except Exception as e:
+                    _LOGGER.warning("Failed to remove entity %s: %s", entity_id, e)
+            
+            if entities_to_remove:
+                _LOGGER.info("Cleaned up %d incorrect entities for 1-port device %s", len(entities_to_remove), entry.title)
+            else:
+                _LOGGER.debug("No incorrect entities found for 1-port device %s", entry.title)
+                
+        except Exception as e:
+            _LOGGER.warning("Error during entity cleanup for %s: %s", entry.title, e)
+
     def _normalize_mac(self, mac_address: str) -> str:
         """Normalize MAC address for comparison."""
         if not mac_address:
@@ -209,6 +274,9 @@ class MaxSmartMigrationManager:
                 
             # Build enhanced config data (PRESERVING unique_id)
             enhanced_data = await self._build_enhanced_config_data(entry, matched_device)
+            
+            # 🔑 Clean up obsolete entities if port count changed
+            await self._cleanup_obsolete_entities(entry, enhanced_data)
             
             # 🔑 Update config entry WITHOUT changing unique_id
             self.hass.config_entries.async_update_entry(
@@ -432,21 +500,35 @@ class MaxSmartMigrationManager:
             return None
         
     def _preserve_port_names(self, old_data: Dict[str, Any], enhanced_data: Dict[str, Any], device: Dict[str, Any]) -> None:
-        """Preserve port names from legacy configuration."""
+        """Preserve port names from legacy configuration with smart port logic."""
         port_count = enhanced_data["port_count"]
         
-        # Copy existing port names
+        _LOGGER.info("Preserving port names for %d-port device", port_count)
+        
+        # Copy existing port names (PRESERVE existing configuration)
         for port_id in range(1, port_count + 1):
             port_key = f"port_{port_id}_name"
             if port_key in old_data:
                 enhanced_data[port_key] = old_data[port_key]
+                _LOGGER.debug("Preserved existing port name: %s = %s", port_key, old_data[port_key])
             else:
                 # Use device port names as fallback
                 port_names = device.get("pname", [])
                 if port_names and port_id - 1 < len(port_names) and port_names[port_id - 1]:
                     enhanced_data[port_key] = port_names[port_id - 1]
+                    _LOGGER.debug("Using device port name: %s = %s", port_key, port_names[port_id - 1])
                 else:
                     enhanced_data[port_key] = f"Port {port_id}"
+                    _LOGGER.debug("Using default port name: %s = Port %d", port_key, port_id)
+        
+        # 🎯 IMPORTANT: Do NOT preserve master/total entities for 1-port devices
+        # The new entity factory logic will handle this automatically
+        # 1-port devices should not have master switches or total power sensors
+        
+        if port_count == 1:
+            _LOGGER.info("1-port device detected: Entity factory will create NO master switch or total power sensor")
+        else:
+            _LOGGER.info("%d-port device detected: Entity factory will create master switch + total power sensor", port_count)
                     
     def _calculate_changes(self, old_data: Dict[str, Any], new_data: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate what changed during migration."""
@@ -487,11 +569,24 @@ class MaxSmartMigrationManager:
         if summary["migration_failed"] > 0:
             _LOGGER.warning("Migration failed: %d", summary["migration_failed"])
             
-        # Log individual migration details
+        # Log individual migration details with port info
         for detail in summary["details"]:
             if detail["status"] == "legacy_migrated":
-                _LOGGER.info("Migrated: %s (method: %s) - preserved unique_id: %s", 
-                           detail["title"], detail.get("matching_method", "unknown"), detail["old_unique_id"])
+                # Get port count info if available
+                port_info = ""
+                try:
+                    entries = self.hass.config_entries.async_entries("maxsmart")
+                    for entry in entries:
+                        if entry.entry_id == detail["entry_id"]:
+                            port_count = entry.data.get("port_count", "unknown")
+                            port_info = f" ({port_count}-port)"
+                            break
+                except:
+                    pass
+                    
+                _LOGGER.info("Migrated: %s (method: %s)%s - preserved unique_id: %s", 
+                           detail["title"], detail.get("matching_method", "unknown"), 
+                           port_info, detail["old_unique_id"])
             elif detail["status"] == "migration_failed":
                 _LOGGER.warning("Failed: %s - %s", detail["title"], detail["error"])
 

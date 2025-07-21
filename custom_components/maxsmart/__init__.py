@@ -30,14 +30,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.debug("Performing one-time MaxSmart migration check")
             migration_summary = await async_migrate_config_entries(hass)
             
-            # Mark migration as completed
+            # Mark migration as completed and store summary
             hass.data.setdefault(DOMAIN, {})
             hass.data[DOMAIN]['_migration_checked'] = True
+            hass.data[DOMAIN]['_last_migration_summary'] = migration_summary
             
-            # Log migration results
+            # Log migration results and show notification
             if migration_summary["migrated_successfully"] > 0:
                 _LOGGER.info("Successfully migrated %d MaxSmart config entries", 
                            migration_summary["migrated_successfully"])
+                
+                # Show notification popup for successful migration
+                hass.components.persistent_notification.async_create(
+                    message=f"{migration_summary['migrated_successfully']} MaxSmart devices have been migrated. "
+                           f"You can customize device and port names by clicking the gear icon of each device.",
+                    title="MaxSmart Migration Complete",
+                    notification_id="maxsmart_migration_success"
+                )
+                
             elif migration_summary["migration_failed"] > 0:
                 _LOGGER.warning("Failed to migrate %d MaxSmart config entries - continuing with legacy format", 
                               migration_summary["migration_failed"])
@@ -47,6 +57,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Mark as checked to prevent repeated attempts
             hass.data.setdefault(DOMAIN, {})
             hass.data[DOMAIN]['_migration_checked'] = True
+            hass.data[DOMAIN]['_last_migration_summary'] = {
+                "migrated_successfully": 0,
+                "migration_failed": 0,
+                "total_entries": 0,
+                "error": str(err)
+            }
     
     try:
         # Initialize coordinator with config entry
@@ -90,9 +106,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Remove from hass data
         hass.data[DOMAIN].pop(entry.entry_id)
         
-        # Clean up domain if no more entries
-        if not hass.data[DOMAIN] or list(hass.data[DOMAIN].keys()) == ['_migration_checked']:
-            hass.data.pop(DOMAIN)
+        # Clean up domain if no more entries (but keep migration data)
+        remaining_keys = [k for k in hass.data[DOMAIN].keys() if not k.startswith('_')]
+        if not remaining_keys:
+            # Keep migration metadata but clean up device entries
+            migration_data = {
+                k: v for k, v in hass.data[DOMAIN].items() 
+                if k.startswith('_')
+            }
+            hass.data[DOMAIN] = migration_data
             
         _LOGGER.info("MaxSmart integration unloaded successfully: %s", device_name)
     else:

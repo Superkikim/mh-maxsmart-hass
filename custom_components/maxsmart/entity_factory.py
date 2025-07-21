@@ -1,5 +1,5 @@
 # custom_components/maxsmart/entity_factory.py
-"""Enhanced entity creation with hardware information and improved device detection."""
+"""Enhanced entity creation with smart port logic and simplified naming."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from .coordinator import MaxSmartCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 class MaxSmartEntityFactory:
-    """Enhanced factory for creating MaxSmart entities with hardware information."""
+    """Enhanced factory for creating MaxSmart entities with smart port logic."""
     
     def __init__(self, coordinator: MaxSmartCoordinator, config_entry: ConfigEntry):
         """Initialize the enhanced entity factory."""
@@ -70,7 +70,18 @@ class MaxSmartEntityFactory:
             _LOGGER.debug("Using stored port count: %d", stored_count)
             return stored_count
         
-        # Method 2: Check serial number pattern (legacy method)
+        # Method 2: Count configured port names (most reliable)
+        configured_ports = 0
+        for port_id in range(1, 7):  # Check up to 6 ports
+            port_key = f"port_{port_id}_name"
+            if port_key in self.device_data:
+                configured_ports = port_id
+        
+        if configured_ports > 0:
+            _LOGGER.debug("Detected %d ports from configured names", configured_ports)
+            return configured_ports
+        
+        # Method 3: Check serial number pattern (legacy method)
         try:
             serial = self.device_unique_id
             if serial.startswith(("cpu_", "mac_", "sn_")):
@@ -88,17 +99,6 @@ class MaxSmartEntityFactory:
                             return 6
         except Exception as err:
             _LOGGER.debug("Error parsing device ID for port count: %s", err)
-        
-        # Method 3: Count configured port names
-        configured_ports = 0
-        for port_id in range(1, 7):  # Check up to 6 ports
-            port_key = f"port_{port_id}_name"
-            if port_key in self.device_data:
-                configured_ports = port_id
-        
-        if configured_ports > 0:
-            _LOGGER.debug("Detected %d ports from configured names", configured_ports)
-            return configured_ports
             
         # Default fallback - assume 6 ports for power stations
         _LOGGER.debug("Using default port count: 6")
@@ -131,10 +131,10 @@ class MaxSmartEntityFactory:
         port_count = self.get_port_count()
         model = "MaxSmart Smart Plug" if port_count == 1 else "MaxSmart Power Station"
         
-        # Base device info
+        # Base device info with device name prominently displayed
         device_info = {
             "identifiers": {("maxsmart", self.device_unique_id)},
-            "name": f"MaxSmart {self.device_name}",
+            "name": self.device_name,  # 🎯 Display device name prominently
             "manufacturer": "Max Hauri", 
             "model": model,
             "sw_version": self.firmware_version,
@@ -170,46 +170,32 @@ class MaxSmartEntityFactory:
     
     def create_switch_entities(self) -> List[Dict[str, Any]]:
         """
-        Create enhanced switch entity configurations.
+        Create smart switch entity configurations based on port count.
+        
+        1 port = No master, just the single port
+        6 ports = Master + 6 individual ports
         
         Returns:
-            List of switch entity configurations with enhanced metadata
+            List of switch entity configurations with simplified naming
         """
         entities = []
         port_count = self.get_port_count()
         port_names = self.get_port_names()
         device_info = self.get_device_info()
         
-        # Master switch (port 0) - only for multi-port devices
-        if port_count > 1:
+        # Smart logic: 1 port vs 6 ports
+        if port_count == 1:
+            # Single port device: NO master, just the port
+            port_name = port_names[0]
+            
             entities.append({
                 "coordinator": self.coordinator,
                 "device_unique_id": self.device_unique_id,
                 "device_name": self.device_name,
-                "port_id": 0,
-                "port_name": "Master",
-                "unique_id": f"{self.device_unique_id}_0",
-                "name": f"{self.device_name} Master",
-                "device_info": device_info,
-                "is_master": True,
-                # Enhanced metadata
-                "cpu_id": self.cpu_id,
-                "mac_address": self.mac_address,
-                "identification_method": self.identification_method,
-            })
-        
-        # Individual port switches
-        for port_id in range(1, port_count + 1):
-            port_name = port_names[port_id - 1]
-            
-            entities.append({
-                "coordinator": self.coordinator,
-                "device_unique_id": self.device_unique_id, 
-                "device_name": self.device_name,
-                "port_id": port_id,
+                "port_id": 1,
                 "port_name": port_name,
-                "unique_id": f"{self.device_unique_id}_{port_id}",
-                "name": f"{self.device_name} {port_name}",
+                "unique_id": f"{self.device_unique_id}_1",
+                "name": port_name,  # 🎯 Simplified: just port name
                 "device_info": device_info,
                 "is_master": False,
                 # Enhanced metadata
@@ -218,52 +204,78 @@ class MaxSmartEntityFactory:
                 "identification_method": self.identification_method,
             })
             
-        _LOGGER.debug("Created %d switch entities for device %s (%s)", 
-                     len(entities), self.device_name, self.identification_method)
+        else:
+            # Multi-port device: Master + individual ports
+            
+            # Master switch (port 0)
+            entities.append({
+                "coordinator": self.coordinator,
+                "device_unique_id": self.device_unique_id,
+                "device_name": self.device_name,
+                "port_id": 0,
+                "port_name": "Master",
+                "unique_id": f"{self.device_unique_id}_0",
+                "name": "Master",  # 🎯 Simplified: just "Master"
+                "device_info": device_info,
+                "is_master": True,
+                # Enhanced metadata
+                "cpu_id": self.cpu_id,
+                "mac_address": self.mac_address,
+                "identification_method": self.identification_method,
+            })
+            
+            # Individual port switches
+            for port_id in range(1, port_count + 1):
+                port_name = port_names[port_id - 1]
+                
+                entities.append({
+                    "coordinator": self.coordinator,
+                    "device_unique_id": self.device_unique_id, 
+                    "device_name": self.device_name,
+                    "port_id": port_id,
+                    "port_name": port_name,
+                    "unique_id": f"{self.device_unique_id}_{port_id}",
+                    "name": port_name,  # 🎯 Simplified: just port name
+                    "device_info": device_info,
+                    "is_master": False,
+                    # Enhanced metadata
+                    "cpu_id": self.cpu_id,
+                    "mac_address": self.mac_address,
+                    "identification_method": self.identification_method,
+                })
+            
+        _LOGGER.debug("Created %d switch entities for %s (%d-port device, method: %s)", 
+                     len(entities), self.device_name, port_count, self.identification_method)
         return entities
     
     def create_sensor_entities(self) -> List[Dict[str, Any]]:
         """
-        Create enhanced sensor entity configurations.
+        Create smart sensor entity configurations based on port count.
+        
+        1 port = Just the single port power sensor
+        6 ports = Total power + 6 individual port sensors
         
         Returns:
-            List of sensor entity configurations with enhanced metadata
+            List of sensor entity configurations with simplified naming
         """
         entities = []
         port_count = self.get_port_count()
         port_names = self.get_port_names()
         device_info = self.get_device_info()
         
-        # Total power sensor - only for multi-port devices
-        if port_count > 1:
-            entities.append({
-                "coordinator": self.coordinator,
-                "device_unique_id": self.device_unique_id,
-                "device_name": self.device_name,
-                "port_id": 0,
-                "port_name": "Total Power",
-                "unique_id": f"{self.device_unique_id}_0_power",
-                "name": f"{self.device_name} Total Power",
-                "device_info": device_info,
-                "is_total": True,
-                # Enhanced metadata
-                "cpu_id": self.cpu_id,
-                "mac_address": self.mac_address,
-                "identification_method": self.identification_method,
-            })
-        
-        # Individual port power sensors
-        for port_id in range(1, port_count + 1):
-            port_name = port_names[port_id - 1]
+        # Smart logic: 1 port vs 6 ports
+        if port_count == 1:
+            # Single port device: NO total power, just the port power
+            port_name = port_names[0]
             
             entities.append({
                 "coordinator": self.coordinator,
                 "device_unique_id": self.device_unique_id,
                 "device_name": self.device_name, 
-                "port_id": port_id,
+                "port_id": 1,
                 "port_name": port_name,
-                "unique_id": f"{self.device_unique_id}_{port_id}_power",
-                "name": f"{self.device_name} {port_name} Power",
+                "unique_id": f"{self.device_unique_id}_1_power",
+                "name": f"{port_name} Power",  # 🎯 Simplified: "Port Power"
                 "device_info": device_info,
                 "is_total": False,
                 # Enhanced metadata
@@ -272,8 +284,48 @@ class MaxSmartEntityFactory:
                 "identification_method": self.identification_method,
             })
             
-        _LOGGER.debug("Created %d sensor entities for device %s (%s)", 
-                     len(entities), self.device_name, self.identification_method)
+        else:
+            # Multi-port device: Total power + individual ports
+            
+            # Total power sensor
+            entities.append({
+                "coordinator": self.coordinator,
+                "device_unique_id": self.device_unique_id,
+                "device_name": self.device_name,
+                "port_id": 0,
+                "port_name": "Total Power",
+                "unique_id": f"{self.device_unique_id}_0_power",
+                "name": "Total Power",  # 🎯 Simplified: just "Total Power"
+                "device_info": device_info,
+                "is_total": True,
+                # Enhanced metadata
+                "cpu_id": self.cpu_id,
+                "mac_address": self.mac_address,
+                "identification_method": self.identification_method,
+            })
+            
+            # Individual port power sensors
+            for port_id in range(1, port_count + 1):
+                port_name = port_names[port_id - 1]
+                
+                entities.append({
+                    "coordinator": self.coordinator,
+                    "device_unique_id": self.device_unique_id,
+                    "device_name": self.device_name, 
+                    "port_id": port_id,
+                    "port_name": port_name,
+                    "unique_id": f"{self.device_unique_id}_{port_id}_power",
+                    "name": f"{port_name} Power",  # 🎯 Simplified: "Port Power"
+                    "device_info": device_info,
+                    "is_total": False,
+                    # Enhanced metadata
+                    "cpu_id": self.cpu_id,
+                    "mac_address": self.mac_address,
+                    "identification_method": self.identification_method,
+                })
+            
+        _LOGGER.debug("Created %d sensor entities for %s (%d-port device, method: %s)", 
+                     len(entities), self.device_name, port_count, self.identification_method)
         return entities
     
     def get_entity_counts(self) -> Tuple[int, int]:
@@ -286,7 +338,7 @@ class MaxSmartEntityFactory:
         port_count = self.get_port_count()
         
         if port_count == 1:
-            # Single port: 1 switch, 1 sensor
+            # Single port: 1 switch, 1 sensor (no master, no total)
             switch_count = 1
             sensor_count = 1
         else:
