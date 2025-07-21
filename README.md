@@ -10,11 +10,11 @@ Control your **Max Hauri MaxSmart** smart power strips and plugs directly from H
 
 ## 🎯 What's New in v2025.7.1
 
-- **🔄 Automatic Migration** - Seamless upgrade from older versions
+- **🏷️ Home Assistant Name Management** - Device and port names managed entirely in HA, independent from device settings!
+- **⚡ Real-time Updates** - Live monitoring every 5 seconds (vs 30 seconds before)
+- **🔄 Automatic Migration** - Seamless upgrade from older versions with zero downtime
 - **🧠 Smart Device Detection** - Automatically identifies 1-port vs 6-port devices
-- **🔧 Enhanced Reliability** - Better error handling and network connectivity
-- **⚡ Real-time Monitoring** - Live power consumption tracking
-- **🏷️ Easy Customization** - Simple device and port renaming
+- **🛡️ Rock-Solid Reliability** - Complete error handling overhaul with clear messages and automatic recovery
 
 ## 📱 Supported Devices
 
@@ -25,20 +25,32 @@ Control your **Max Hauri MaxSmart** smart power strips and plugs directly from H
 | **Compatible Models** | Various | Revogi, Extel Soky, MCL DOM-PPS06I |
 
 ### ✅ Firmware Compatibility
-- **v1.30** - Full support (all features)
-- **v2.11+** - Basic control (power monitoring only)
-- **Auto-detection** - The integration adapts to your firmware automatically
+- **v1.30** - Full support ✅ **(Tested & Validated)**
+- **v2.11+** - Basic control ✅ **(Tested & Validated)**
+- **Other firmware** - May work but **we need testers!** 
+
+**🤝 Help us expand compatibility!** If you have MaxSmart devices with different firmware versions, please [contact us](https://github.com/superkikim/mh-maxsmart-hass/issues/new) to help test and ensure full support.
 
 ## 🚀 Installation
 
-### Option 1: HACS (Recommended)
+### Option 1: HACS Custom Repository (Recommended)
+*While we work on getting into the official HACS catalog*
+
+1. Open **HACS** in Home Assistant
+2. Go to **Integrations** → **⋮** → **Custom repositories**
+3. Add repository: `https://github.com/superkikim/mh-maxsmart-hass`
+4. Category: **Integration**
+5. Search for **"MaxSmart"** and install
+6. Restart Home Assistant
+
+### Option 2: HACS Official (Coming Soon)
 1. Open **HACS** in Home Assistant
 2. Go to **Integrations**
 3. Search for **"MaxSmart"**
 4. Click **Install**
 5. Restart Home Assistant
 
-### Option 2: Manual Installation
+### Option 3: Manual Installation
 1. Download the latest release from [GitHub](https://github.com/superkikim/mh-maxsmart-hass/releases)
 2. Extract to `config/custom_components/maxsmart/`
 3. Restart Home Assistant
@@ -57,10 +69,12 @@ The integration will **automatically find** your MaxSmart devices on the network
 - ✅ **Found devices?** Great! They'll be added automatically
 - ❌ **No devices found?** Enter your device IP address manually
 
-### 3. Customize Names (Optional)
-During setup, you can customize:
+### 3. Customize Names
+During setup (and anytime after via ⚙️ gear icon), you can customize:
 - **Device name** (e.g., "Living Room Power Strip")
 - **Port names** (e.g., "TV", "Lamp", "Router")
+
+**🎯 Pro Tip**: Names are managed entirely in Home Assistant - completely independent from device settings!
 
 ## 🎛️ What You'll Get
 
@@ -84,16 +98,18 @@ During setup, you can customize:
 - **Reliable Commands** - Built-in retry for network issues
 
 ### ⚡ Power Monitoring
-- **Live Consumption** - See power usage in real-time
+- **Real-time Updates** - Live consumption every 5 seconds (vs 30 seconds in older versions!)
 - **Individual Tracking** - Monitor each port separately
 - **Total Power** - Overall consumption (6-port devices)
 - **Smart Units** - Automatic watt/kilowatt conversion
+- **Historical Data** - Track consumption over time
 
 ### 🛠️ Management
-- **Easy Renaming** - Change device and port names anytime
-- **Auto-Discovery** - Finds devices automatically
-- **Status Monitoring** - Device health and connectivity
-- **Error Recovery** - Automatic reconnection
+- **🏷️ Complete Name Control** - Manage all names in Home Assistant, independent from devices
+- **Easy Renaming** - Change device and port names anytime via gear icon
+- **Auto-Discovery** - Finds devices automatically on your network
+- **🛡️ Bulletproof Reliability** - Advanced error handling with clear messages
+- **🔄 Auto-Recovery** - Automatic reconnection and retry logic
 
 ## 🔧 Customization
 
@@ -198,9 +214,10 @@ Device: "Coffee Maker Plug"
 ## ⚠️ Important Notes
 
 ### Device Limitations
-- **HTTP Only** - Devices use unencrypted communication
-- **Same Network** - Must be on same network as Home Assistant
-- **Port Limits** - 1 or 6 ports depending on model
+- **HTTP Only** - Devices use unencrypted communication (device hardware limitation)
+- **Discovery Network** - Device discovery requires same network segment (UDP broadcast limitation)
+- **Control Network** - Device control works across network segments (HTTP routing supported)
+- **Port Limits** - 1 or 6 ports depending on device model
 
 ### Firmware Compatibility
 - **v1.30** - Recommended, full feature support

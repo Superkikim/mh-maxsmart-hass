@@ -8,18 +8,26 @@
 
 ## ✨ What's New
 
-### 🔄 Automatic Migration System
-- **Seamless Upgrades** - Zero-downtime migration from previous versions
-- **Hardware-Based Identification** - Uses CPU ID and MAC address for robust device tracking
-- **Smart Entity Cleanup** - Automatically removes incorrect entities (e.g., master switch on 1-port devices)
-- **Configuration Preservation** - Keeps all your custom device and port names
-- **Migration Notifications** - Clear feedback when migration completes
+### 🏷️ Revolutionary Name Management
+- **Home Assistant Native** - All device and port names managed entirely within HA
+- **Device Independence** - No more reliance on device-stored names
+- **Instant Updates** - Name changes apply immediately without device communication
+- **Perfect Migration** - Existing custom names preserved during upgrade
+- **Unlimited Characters** - No device firmware name length restrictions
 
-### 🧠 Intelligent Device Detection
-- **Port Count Recognition** - Automatically detects 1-port vs 6-port devices
-- **Smart Entity Creation** - Creates only relevant entities for each device type
-- **Hardware Fingerprinting** - Uses multiple identification methods for reliability
-- **Future-Proof Design** - Handles device IP changes and network reconfigurations
+### ⚡ Real-Time Performance Boost
+- **5-Second Updates** - Live power monitoring every 5 seconds (vs 30 seconds before!)
+- **Instant Response** - Immediate feedback on device state changes
+- **Adaptive Polling** - Smart polling system that mimics official app behavior
+- **Burst Mode** - 2-second updates after commands for instant confirmation
+- **Live Dashboard** - Real-time consumption tracking for automation triggers
+
+### 🔄 Bulletproof Migration System
+- **Zero-Downtime Upgrades** - Seamless migration from previous versions
+- **Hardware Fingerprinting** - Uses CPU ID and MAC address for rock-solid device tracking
+- **Intelligent Entity Cleanup** - Automatically removes incorrect entities
+- **Configuration Preservation** - All your custom names and settings preserved
+- **Clear Feedback** - Migration notifications confirm successful upgrade
 
 ### ⚡ Enhanced Power Monitoring
 - **Real-Time Data** - Live power consumption updates every 5 seconds
@@ -27,11 +35,16 @@
 - **Improved Accuracy** - Better data conversion and validation
 - **Smart Icons** - Dynamic icons based on power consumption levels
 
-### 🛠️ Improved Reliability
-- **Robust Error Handling** - Intelligent retry logic for network issues
-- **Connection Pooling** - Efficient HTTP session management
-- **Reduced Log Pollution** - Smart error filtering to minimize unnecessary warnings
-- **Health Monitoring** - Built-in device connectivity diagnostics
+### 🛡️ Enterprise-Grade Reliability Revolution
+**The previous error handling was catastrophic - we've completely rebuilt it from the ground up!**
+
+- **Intelligent Error Detection** - Comprehensive error classification and handling
+- **Smart Retry Logic** - Exponential backoff with network-aware recovery
+- **Clear Error Messages** - User-friendly messages instead of cryptic technical errors
+- **Automatic Recovery** - Self-healing connections and automatic reconnection
+- **Bulletproof Validation** - All inputs validated with proper security controls
+- **Zero-Crash Design** - Isolated error boundaries prevent integration failures
+- **Diagnostic Tools** - Built-in health monitoring and connectivity diagnostics
 
 ### 🎨 Better User Experience
 - **Simplified Setup** - Streamlined configuration flow
@@ -41,11 +54,21 @@
 
 ## 🔧 What's Fixed
 
-### 🐛 Critical Bug Fixes
+### 🚨 Critical Error Handling Overhaul
+**Previous versions had catastrophic error handling - we've completely rebuilt the entire system!**
+
+- **Log Pollution Eliminated** - Smart error filtering stops unnecessary warnings [![Fixed](https://img.shields.io/badge/Status-Fixed-brightgreen.svg)]()
+- **Clear Error Messages** - User-friendly messages replace cryptic technical errors [![Fixed](https://img.shields.io/badge/Status-Fixed-brightgreen.svg)]()
+- **Network Resilience** - Robust retry logic with exponential backoff [![Fixed](https://img.shields.io/badge/Status-Fixed-brightgreen.svg)]()
+- **Connection Recovery** - Automatic reconnection and session management [![Fixed](https://img.shields.io/badge/Status-Fixed-brightgreen.svg)]()
+- **Input Validation** - Comprehensive security controls prevent crashes [![Fixed](https://img.shields.io/badge/Status-Fixed-brightgreen.svg)]()
+
+### 🐛 Legacy Bug Fixes
 - **Entity Duplication** - Fixed duplicate entities on upgrades [![Fixed](https://img.shields.io/badge/Status-Fixed-brightgreen.svg)]()
 - **Master Switch Issues** - Removed incorrect master entities on 1-port devices [![Fixed](https://img.shields.io/badge/Status-Fixed-brightgreen.svg)]()
-- **Connection Timeouts** - Improved network error handling and recovery [![Fixed](https://img.shields.io/badge/Status-Fixed-brightgreen.svg)]()
-- **Discovery Failures** - More robust device discovery with multiple fallbacks [![Fixed](https://img.shields.io/badge/Status-Fixed-brightgreen.svg)]()
+- **Discovery Failures** - Multiple fallback methods for reliable device detection [![Fixed](https://img.shields.io/badge/Status-Fixed-brightgreen.svg)]()
+- **Memory Leaks** - Proper resource cleanup and session management [![Fixed](https://img.shields.io/badge/Status-Fixed-brightgreen.svg)]()
+- **State Inconsistencies** - Real-time state synchronization and validation [![Fixed](https://img.shields.io/badge/Status-Fixed-brightgreen.svg)]()
 
 ### 🔄 Migration Improvements
 - **Preserved unique_id** - Prevents device duplication during upgrades
@@ -111,12 +134,15 @@ If you encounter issues:
 - **Network** Same network as MaxSmart devices
 
 ### Supported Devices
-| Device | Firmware | Support Level |
-|--------|----------|---------------|
-| MaxSmart Power Station (6-port) | v1.30 | [![Full](https://img.shields.io/badge/Support-Full-brightgreen.svg)]() |
-| MaxSmart Smart Plug (1-port) | v1.30 | [![Full](https://img.shields.io/badge/Support-Full-brightgreen.svg)]() |
-| MaxSmart Devices | v2.11+ | [![Basic](https://img.shields.io/badge/Support-Basic-yellow.svg)]() |
-| Compatible Models | Various | [![Varies](https://img.shields.io/badge/Support-Varies-orange.svg)]() |
+| Device | Firmware | Support Level | Test Status |
+|--------|----------|---------------|-------------|
+| MaxSmart Power Station (6-port) | **v1.30** | [![Full](https://img.shields.io/badge/Support-Full-brightgreen.svg)]() | [![Tested](https://img.shields.io/badge/Tests-Validated-brightgreen.svg)]() |
+| MaxSmart Smart Plug (1-port) | **v1.30** | [![Full](https://img.shields.io/badge/Support-Full-brightgreen.svg)]() | [![Tested](https://img.shields.io/badge/Tests-Validated-brightgreen.svg)]() |
+| MaxSmart Devices | **v2.11+** | [![Basic](https://img.shields.io/badge/Support-Basic-yellow.svg)]() | [![Tested](https://img.shields.io/badge/Tests-Validated-brightgreen.svg)]() |
+| Other Compatible Models | Various | [![Unknown](https://img.shields.io/badge/Support-Unknown-orange.svg)]() | [![Need Testers](https://img.shields.io/badge/Tests-Need%20Volunteers-red.svg)]() |
+
+**🤝 Expand Our Device Support!** 
+If you have MaxSmart devices with different firmware versions, please [contact us](https://github.com/superkikim/mh-maxsmart-hass/issues/new?template=device_compatibility.md) to help test and ensure full compatibility. We're actively seeking testers for expanded device support!
 
 ## 🆕 New Dependencies
 
