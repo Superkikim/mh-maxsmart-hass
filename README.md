@@ -31,7 +31,7 @@ These are **REVOGI-based devices**. Other REVOGI-based devices might work as wel
 - **v2.11+** - Basic control ✅ **(Tested & Validated)**
 - **Other firmware** - May work but **we need testers!** 
 
-**🤝 Help us expand compatibility!** If you have MaxSmart devices with different firmware versions, please [contact us](https://github.com/superkikim/mh-maxsmart-hass/issues/new) to help test and ensure full support.
+**🤝 Help us expand compatibility!** If you have Revogi based devices with different firmware versions, please [contact us](https://github.com/superkikim/mh-maxsmart-hass/issues/new) to help test and ensure full support.
 
 ## 🚀 Installation
 
