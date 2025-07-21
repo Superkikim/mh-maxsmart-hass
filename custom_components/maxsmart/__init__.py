@@ -40,13 +40,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 _LOGGER.info("Successfully migrated %d MaxSmart config entries", 
                            migration_summary["migrated_successfully"])
                 
-                # Show notification popup for successful migration
-                hass.components.persistent_notification.async_create(
-                    message=f"{migration_summary['migrated_successfully']} MaxSmart devices have been migrated. "
-                           f"You can customize device and port names by clicking the gear icon of each device.",
-                    title="MaxSmart Migration Complete",
-                    notification_id="maxsmart_migration_success"
-                )
+                # Show notification popup for successful migration using service call
+                try:
+                    await hass.services.async_call(
+                        "persistent_notification", 
+                        "create",
+                        {
+                            "title": "MaxSmart Migration Complete",
+                            "message": f"{migration_summary['migrated_successfully']} MaxSmart devices have been migrated. "
+                                      f"You can customize device and port names by clicking the gear icon of each device.",
+                            "notification_id": "maxsmart_migration_success"
+                        }
+                    )
+                    _LOGGER.info("Migration notification popup displayed successfully")
+                except Exception as err:
+                    _LOGGER.warning("Failed to display migration notification: %s", err)
                 
             elif migration_summary["migration_failed"] > 0:
                 _LOGGER.warning("Failed to migrate %d MaxSmart config entries - continuing with legacy format", 
