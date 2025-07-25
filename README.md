@@ -1,4 +1,4 @@
-# MaxSmart (Revogi) for Home Assistant
+# Max Hauri MaxSmart (Revogi based) for Home Assistant
 
 [![Version](https://img.shields.io/badge/Version-2025.7.1-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.6%2B-green.svg)](https://www.home-assistant.io/)
@@ -20,18 +20,24 @@ These are **REVOGI-based devices**. Other REVOGI-based devices might work as wel
 
 ## 📱 Supported Devices
 
-| Device Type | Ports | Model Examples |
-|-------------|-------|----------------|
-| **Smart Plug** | 1 port | Max Hauri Smart Plug |
-| **Power Station** | 6 ports | Max Hauri MaxSmart Power Station |
-| **Compatible Models** | Various | Revogi, Extel Soky, MCL DOM-PPS06I |
+| Brand | Device Type | Ports | Model Examples | Firmware Tested |
+|-------|-------------|-------|----------------|-----------------|
+| **Max Hauri** | Smart Plug | 1 port | MaxSmart Smart Plug | v1.10, v1.30, v2.11 ✅ |
+| **Max Hauri** | Power Station | 6 ports | MaxSmart Power Station | v1.10, v1.30, v2.11 ✅ |
+| **Revogi** | Power Strip | 6 ports | SOW323 | v3.36, v3.49 ✅ |
+| **CoCoSo** | Power Strip | 6 ports | SOW323 | v1.06 ✅ |
+| **Extel** | Power Strip | 6 ports | Soky Power Strip | *Compatible* |
+| **MCL** | Power Strip | 6 ports | DOM-PPS06I | *Compatible* |
 
 ### ✅ Firmware Compatibility
-- **v1.30** - Full support ✅ **(Tested & Validated)**
-- **v2.11+** - Basic control ✅ **(Tested & Validated)**
-- **Other firmware** - May work but **we need testers!** 
+- **v1.06** - Full support ✅ **(Tested & Validated - CoCoSo)**
+- **v1.10** - Full support ✅ **(Tested & Validated - Max Hauri)**
+- **v1.30** - Full support ✅ **(Tested & Validated - Max Hauri)**
+- **v2.11** - Full support ✅ **(Tested & Validated - Max Hauri)**
+- **v3.36** - Full support ✅ **(Tested & Validated - Revogi)**
+- **v3.49** - Full support ✅ **(Tested & Validated - Revogi)**
 
-**🤝 Help us expand compatibility!** If you have Revogi based devices with different firmware versions, please [contact us](https://github.com/superkikim/mh-maxsmart-hass/issues/new) to help test and ensure full support.
+**🤝 Help us expand compatibility!** If you have Revogi-based devices from other brands or with different firmware versions, please [test them and let us know](https://github.com/superkikim/mh-maxsmart-hass/issues/new?template=device_compatibility.md) - we'd love to add them to the supported list!
 
 ## 🚀 Installation
 
@@ -66,7 +72,7 @@ These are **REVOGI-based devices**. Other REVOGI-based devices might work as wel
 4. Follow the setup wizard
 
 ### 2. Device Discovery
-The integration will **automatically find** your MaxSmart devices on the network:
+The integration will **automatically find** your MaxSmart/Revogi/CoCoSo devices on the network:
 
 - ✅ **Found devices?** Great! They'll be added automatically
 - ❌ **No devices found?** Enter your device IP address manually
@@ -222,9 +228,9 @@ Device: "Coffee Maker Plug"
 - **Port Limits** - 1 or 6 ports depending on device model
 
 ### Firmware Compatibility
-- **v1.30** - Recommended, full feature support
-- **v2.11+** - Basic features only
-- **Older versions** - May work but not officially supported
+- **v1.06, v1.10, v1.30** - Recommended, full feature support
+- **v2.11, v3.36, v3.49** - Full feature support
+- **Other versions** - May work but not officially tested
 
 ### End of Life Notice
 MaxSmart products are **discontinued** by Max Hauri. This integration provides local control as cloud services may be discontinued.
@@ -237,6 +243,7 @@ We welcome contributions! Here's how you can help:
 - 💡 **Suggest Features** - Share your ideas
 - 🔧 **Submit Fixes** - Pull requests welcome
 - 📚 **Improve Docs** - Help make documentation better
+- 🧪 **Test Devices** - Help us validate more Revogi-based devices
 
 ## 📄 License
 
