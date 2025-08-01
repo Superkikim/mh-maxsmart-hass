@@ -9,5 +9,5 @@
   "issue_tracker": "https://github.com/superkikim/mh-maxsmart-hass/issues",
   "loggers": ["maxsmart"],
   "requirements": ["maxsmart>=2.0.3"],
-  "version": "2025.7.1"
+  "version": "2025.8.1"
 }

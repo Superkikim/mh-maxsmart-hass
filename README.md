@@ -1,6 +1,6 @@
 # Max Hauri MaxSmart (Revogi based) for Home Assistant
 
-[![Version](https://img.shields.io/badge/Version-2025.7.1-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases)
+[![Version](https://img.shields.io/badge/Version-2025.8.1-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.6%2B-green.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Compatible-orange.svg)](https://hacs.xyz/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -10,7 +10,7 @@ Control your **Max Hauri MaxSmart** smart power strips and plugs directly from H
 
 These are **REVOGI-based devices**. Other REVOGI-based devices might work as well. Feel free to test and come back to me for any feedback. We may work together to make them work.
 
-## 🎯 What's New in v2025.7.1
+## 🎯 What's New in v2025.8.1
 
 - **🏷️ Home Assistant Name Management** - Device and port names managed entirely in HA, independent from device settings!
 - **⚡ Real-time Updates** - Live monitoring every 5 seconds (vs 30 seconds before)
