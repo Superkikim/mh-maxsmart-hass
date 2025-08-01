@@ -1,5 +1,5 @@
 # custom_components/maxsmart/entity_factory.py
-"""Enhanced entity creation with smart port logic and simplified naming."""
+"""Enhanced entity creation with smart port logic, simplified naming, and IP display."""
 
 from __future__ import annotations
 
@@ -123,10 +123,10 @@ class MaxSmartEntityFactory:
     
     def get_device_info(self) -> Dict[str, Any]:
         """
-        Generate enhanced device info for Home Assistant with hardware details.
+        Generate enhanced device info for Home Assistant with hardware details and IP address.
         
         Returns:
-            Enhanced device info dictionary with hardware identifiers
+            Enhanced device info dictionary with hardware identifiers and IP
         """
         port_count = self.get_port_count()
         model = "MaxSmart Smart Plug" if port_count == 1 else "MaxSmart Power Station"
@@ -144,6 +144,9 @@ class MaxSmartEntityFactory:
         
         # Add hardware information if available
         hw_details = []
+        
+        # Add IP address (requested feature)
+        hw_details.append(f"IP: {self.device_ip}")
         
         # Add CPU ID
         if self.cpu_id:
