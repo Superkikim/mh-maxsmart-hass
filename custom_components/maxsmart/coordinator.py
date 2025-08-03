@@ -1,5 +1,5 @@
 # custom_components/maxsmart/coordinator.py
-"""MaxSmart coordinator with intelligent polling and smart error handling."""
+"""MaxSmart coordinator with intelligent polling and conservative IP recovery."""
 
 from __future__ import annotations
 
@@ -70,7 +70,7 @@ class NetworkCascadeDetector:
         if len(detector._cascade_devices) >= cls._cascade_threshold:
             if not detector._cascade_logged:
                 detector._cascade_logged = True
-                _LOGGER.warning("Network cascade detected: %d MaxSmart devices offline (possible powerlan/network issue)", 
+                _LOGGER.warning("Network cascade detected: %d MaxSmart devices offline (possible network issue)", 
                                len(detector._cascade_devices))
                 return False  # Don't log individual errors during cascade
             return False  # Cascade already logged
@@ -104,8 +104,70 @@ class NetworkCascadeDetector:
         self._cascade_start_time = None
         self._cascade_logged = False
 
+class ConservativeIPRecovery:
+    """Conservative IP recovery with limited attempts and proper cooldowns."""
+    
+    def __init__(self, device_name: str, mac_address: str):
+        """Initialize conservative IP recovery."""
+        self.device_name = device_name
+        self.mac_address = mac_address
+        
+        # Conservative limits
+        self.max_attempts = 5  # Max attempts per HA session
+        self.cooldown_seconds = 3600  # 1 hour between attempts
+        
+        # State tracking
+        self.attempts_made = 0
+        self.last_attempt_time = 0
+        self.exhausted = False
+        
+    def can_attempt_recovery(self) -> bool:
+        """Check if IP recovery can be attempted."""
+        if not self.mac_address:
+            return False
+            
+        if self.exhausted:
+            return False
+            
+        if self.attempts_made >= self.max_attempts:
+            self.exhausted = True
+            _LOGGER.info("%s IP recovery exhausted (%d attempts), will retry after HA restart", 
+                        self.device_name, self.max_attempts)
+            return False
+            
+        current_time = time.time()
+        if (current_time - self.last_attempt_time) < self.cooldown_seconds:
+            return False
+            
+        return True
+    
+    def start_attempt(self) -> None:
+        """Record the start of an IP recovery attempt."""
+        self.attempts_made += 1
+        self.last_attempt_time = time.time()
+        
+        _LOGGER.info("%s starting IP recovery attempt %d/%d", 
+                    self.device_name, self.attempts_made, self.max_attempts)
+    
+    def reset_on_success(self) -> None:
+        """Reset attempts counter on successful connection."""
+        if self.attempts_made > 0:
+            _LOGGER.info("%s IP recovery successful, resetting attempt counter", self.device_name)
+            self.attempts_made = 0
+            self.exhausted = False
+    
+    def get_status(self) -> Dict[str, Any]:
+        """Get recovery status for diagnostics."""
+        return {
+            "attempts_made": self.attempts_made,
+            "max_attempts": self.max_attempts,
+            "exhausted": self.exhausted,
+            "time_since_last_attempt": time.time() - self.last_attempt_time if self.last_attempt_time > 0 else None,
+            "can_attempt": self.can_attempt_recovery(),
+        }
+
 class SmartErrorTracker:
-    """Smart error tracking to prevent log pollution and manage recovery intelligently."""
+    """Smart error tracking to prevent log pollution."""
     
     def __init__(self, device_name: str):
         """Initialize smart error tracker."""
@@ -118,17 +180,10 @@ class SmartErrorTracker:
         self.first_error_time = None
         self.last_successful_poll = time.time()
         
-        # IP recovery tracking
-        self.ip_recovery_attempts = 0
-        self.max_ip_recovery_attempts = 3
-        self.last_ip_recovery_time = 0
-        self.ip_recovery_cooldown = 300  # 5 minutes between attempts
-        self.ip_recovery_exhausted = False
-        
         # Smart logging
         self.last_warning_time = 0
         self.warning_interval = 300  # 5 minutes between warnings
-        self.error_silence_after = 600  # Stop logging after 10 minutes of errors
+        self.error_silence_after = 900  # Stop logging after 15 minutes of errors
         
         # Network cascade awareness
         self.in_cascade = False
@@ -150,11 +205,6 @@ class SmartErrorTracker:
             elif not self.in_cascade:
                 _LOGGER.info("%s recovered successfully", self.device_name)
         
-        # Reset IP recovery state on successful connection
-        if had_errors and self.ip_recovery_attempts > 0:
-            self.ip_recovery_attempts = 0
-            self.ip_recovery_exhausted = False
-            
         self.in_cascade = False
     
     def record_error(self, error_type: str) -> bool:
@@ -191,10 +241,6 @@ class SmartErrorTracker:
         if self.consecutive_errors == 1:
             return True
             
-        # Always log if error type changed
-        if self.last_error_type != self.last_error_type:
-            return True
-            
         # Stop logging after prolonged errors
         if self.first_error_time and (current_time - self.first_error_time) > self.error_silence_after:
             return False
@@ -206,46 +252,13 @@ class SmartErrorTracker:
             
         return False
     
-    def should_attempt_ip_recovery(self) -> bool:
-        """Determine if IP recovery should be attempted."""
-        current_time = time.time()
-        
-        # Don't attempt if exhausted
-        if self.ip_recovery_exhausted:
-            return False
-            
-        # Don't attempt if max attempts reached
-        if self.ip_recovery_attempts >= self.max_ip_recovery_attempts:
-            self.ip_recovery_exhausted = True
-            _LOGGER.warning("%s IP recovery exhausted (%d attempts), giving up", 
-                          self.device_name, self.max_ip_recovery_attempts)
-            return False
-            
-        # Don't attempt if in cooldown
-        if (current_time - self.last_ip_recovery_time) < self.ip_recovery_cooldown:
-            return False
-            
-        # Only attempt after sustained errors (2+ minutes)
-        if self.first_error_time and (current_time - self.first_error_time) < 120:
-            return False
-            
-        return True
-    
-    def start_ip_recovery_attempt(self) -> None:
-        """Record the start of an IP recovery attempt."""
-        self.ip_recovery_attempts += 1
-        self.last_ip_recovery_time = time.time()
-        
-        _LOGGER.info("%s starting IP recovery attempt %d/%d", 
-                    self.device_name, self.ip_recovery_attempts, self.max_ip_recovery_attempts)
-    
     def is_device_considered_offline(self) -> bool:
-        """Check if device should be considered offline (for error detection)."""
+        """Check if device should be considered offline."""
         current_time = time.time()
         time_since_last_poll = current_time - self.last_successful_poll
         
-        # Consider offline after 60 seconds without successful poll
-        return time_since_last_poll > 60 and self.last_successful_poll > 0
+        # Consider offline after 120 seconds without successful poll
+        return time_since_last_poll > 120 and self.last_successful_poll > 0
     
     def get_status_summary(self) -> Dict[str, Any]:
         """Get status summary for diagnostics."""
@@ -255,13 +268,11 @@ class SmartErrorTracker:
             "total_errors": self.total_errors,
             "last_error_type": self.last_error_type,
             "time_since_last_success": current_time - self.last_successful_poll if self.last_successful_poll > 0 else None,
-            "ip_recovery_attempts": self.ip_recovery_attempts,
-            "ip_recovery_exhausted": self.ip_recovery_exhausted,
             "considered_offline": self.is_device_considered_offline(),
         }
 
 class MaxSmartCoordinator(DataUpdateCoordinator):
-    """Enhanced coordinator with intelligent polling and smart error handling."""
+    """Enhanced coordinator with intelligent polling and conservative IP recovery."""
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize the coordinator with intelligent polling."""
@@ -285,74 +296,125 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         self.device: Optional[MaxSmartDevice] = None
         self._initialized = False
         
+        # Conservative IP recovery
+        self.ip_recovery = ConservativeIPRecovery(self.device_name, self.mac_address)
+        
         # Smart error tracking
         self.error_tracker = SmartErrorTracker(self.device_name)
         
         # Polling statistics
         self._successful_polls = 0
         
-        # Error detection task with longer intervals
+        # Error detection task
         self._error_detection_task = None
 
     async def _async_setup(self) -> None:
-        """Set up the coordinator and initialize device with intelligent polling and resilient setup."""
+        """Set up the coordinator with startup IP recovery."""
         if self._initialized:
             return
             
         try:
-            _LOGGER.debug("Initializing MaxSmart device with intelligent polling: %s (%s)", 
-                         self.device_name, self.device_ip)
+            _LOGGER.debug("Initializing MaxSmart device: %s (%s)", self.device_name, self.device_ip)
             
-            self.device = MaxSmartDevice(self.device_ip)
-            await self.device.initialize_device()
+            # Try initial connection
+            success = await self._try_connect_at_ip(self.device_ip)
             
-            # Start intelligent polling with burst mode
-            await self.device.start_adaptive_polling(enable_burst=True)
+            if success:
+                await self._complete_successful_setup()
+                return
             
-            # Register single polling callback for real-time data updates
-            self.device.register_poll_callback("coordinator", self._on_poll_data)
+            # Initial connection failed - try IP recovery ONCE at startup
+            _LOGGER.info("%s initial connection failed, attempting startup IP recovery", self.device_name)
             
-            # Start smart error detection with longer intervals
-            self._start_smart_error_detection()
+            new_ip = await self._attempt_startup_ip_recovery()
+            if new_ip:
+                success = await self._try_connect_at_ip(new_ip)
+                if success:
+                    await self._update_device_ip(new_ip)
+                    await self._complete_successful_setup()
+                    return
             
-            self._initialized = True
-            
-            # Log successful initialization
-            hw_info = self._format_hardware_info()
-            _LOGGER.info("MaxSmart device ready with intelligent polling: %s (%s)%s", 
-                        self.device_name, self.device_ip, hw_info)
-            
-        except (DiscoveryError, MaxSmartConnectionError) as err:
-            # Smart cascade-aware error logging
-            should_log = self.error_tracker.record_error("setup_failed")
-            
-            if should_log:
-                _LOGGER.error("Cannot connect to MaxSmart device %s (%s): %s", 
-                            self.device_name, self.device_ip, err)
-            
-            # Create resilient setup - integration loads but device unavailable
+            # Both original IP and recovery failed - create resilient setup
             _LOGGER.info("Creating resilient setup for offline device: %s", self.device_name)
-            self._initialized = False  # Mark as not initialized but don't fail
+            self._create_resilient_setup()
             
-            # Start periodic retry for offline devices
-            self._start_offline_retry()
-            
-            # Don't raise UpdateFailed - let integration load in unavailable state
-            return
-                
         except Exception as err:
             should_log = self.error_tracker.record_error("setup_error")
-            
             if should_log:
                 _LOGGER.error("Unexpected error initializing %s: %s", self.device_name, err)
-                
             raise UpdateFailed(f"Setup failed for {self.device_name}: {err}")
 
+    async def _try_connect_at_ip(self, ip_address: str) -> bool:
+        """Try to connect to device at specific IP address."""
+        try:
+            temp_device = MaxSmartDevice(ip_address)
+            await temp_device.initialize_device()
+            await temp_device.close()
+            
+            _LOGGER.debug("Successfully connected to %s at %s", self.device_name, ip_address)
+            return True
+            
+        except Exception as err:
+            _LOGGER.debug("Connection failed to %s at %s: %s", self.device_name, ip_address, err)
+            return False
+
+    async def _attempt_startup_ip_recovery(self) -> Optional[str]:
+        """Attempt IP recovery at startup - limited to one attempt."""
+        if not self.ip_recovery.can_attempt_recovery():
+            return None
+            
+        self.ip_recovery.start_attempt()
+        
+        try:
+            new_ip = await self._recover_device_ip()
+            if new_ip and new_ip != self.device_ip:
+                _LOGGER.info("%s startup IP recovery found new address: %s -> %s", 
+                           self.device_name, self.device_ip, new_ip)
+                return new_ip
+            else:
+                _LOGGER.debug("%s startup IP recovery found no new address", self.device_name)
+                return None
+                
+        except Exception as err:
+            _LOGGER.debug("%s startup IP recovery failed: %s", self.device_name, err)
+            return None
+
+    async def _complete_successful_setup(self) -> None:
+        """Complete successful device setup."""
+        self.device = MaxSmartDevice(self.device_ip)
+        await self.device.initialize_device()
+        
+        # Start intelligent polling with burst mode
+        await self.device.start_adaptive_polling(enable_burst=True)
+        
+        # Register single polling callback for real-time data updates
+        self.device.register_poll_callback("coordinator", self._on_poll_data)
+        
+        # Start conservative error detection
+        self._start_conservative_error_detection()
+        
+        # Reset IP recovery on successful connection
+        self.ip_recovery.reset_on_success()
+        
+        self._initialized = True
+        
+        # Log successful initialization
+        hw_info = self._format_hardware_info()
+        _LOGGER.info("MaxSmart device ready: %s (%s)%s", 
+                    self.device_name, self.device_ip, hw_info)
+
+    def _create_resilient_setup(self) -> None:
+        """Create resilient setup for offline devices."""
+        self._initialized = False
+        
+        # Record setup failure
+        self.error_tracker.record_error("setup_failed")
+        
+        # Start offline retry with conservative IP recovery
+        self._start_offline_retry()
+
     async def _on_poll_data(self, poll_data: Dict[str, Any]) -> None:
-        """
-        Callback for successful polling data from maxsmart intelligent polling.
-        This replaces the traditional HA polling mechanism.
-        """
+        """Callback for successful polling data from maxsmart intelligent polling."""
         try:
             device_data = poll_data.get("device_data", {})
             poll_count = poll_data.get("poll_count", 0)
@@ -362,9 +424,12 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
             self._successful_polls += 1
             self.error_tracker.record_successful_poll()
             
-            # Periodic success logging (much less frequent)
-            if self._successful_polls % 200 == 0:  # Every 200 polls instead of 100
-                _LOGGER.debug("MaxSmart intelligent polling: %s - %d successful polls, %d errors (mode: %s)", 
+            # Reset IP recovery on successful polls
+            self.ip_recovery.reset_on_success()
+            
+            # Periodic success logging (conservative)
+            if self._successful_polls % 300 == 0:  # Every 300 polls instead of 200
+                _LOGGER.debug("MaxSmart polling: %s - %d successful polls, %d errors (mode: %s)", 
                             self.device_name, self._successful_polls, self.error_tracker.total_errors, mode)
             
             # Update HA coordinator data - This triggers entity updates
@@ -381,7 +446,7 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         self._error_detection_task = asyncio.create_task(self._offline_retry_loop())
 
     async def _offline_retry_loop(self) -> None:
-        """Periodic retry loop for offline devices."""
+        """Conservative retry loop for offline devices with IP recovery."""
         try:
             retry_interval = 60  # Start with 1 minute
             max_interval = 300   # Max 5 minutes
@@ -392,26 +457,27 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
                 try:
                     _LOGGER.debug("Attempting to reconnect offline device: %s", self.device_name)
                     
-                    self.device = MaxSmartDevice(self.device_ip)
-                    await self.device.initialize_device()
+                    # Try original IP first
+                    success = await self._try_connect_at_ip(self.device_ip)
                     
-                    # Start intelligent polling
-                    await self.device.start_adaptive_polling(enable_burst=True)
-                    self.device.register_poll_callback("coordinator", self._on_poll_data)
+                    if success:
+                        await self._complete_successful_setup()
+                        return
                     
-                    # Start normal error detection
-                    self._start_smart_error_detection()
+                    # Original IP failed - try IP recovery if allowed
+                    if self.ip_recovery.can_attempt_recovery():
+                        new_ip = await self._attempt_runtime_ip_recovery()
+                        if new_ip:
+                            success = await self._try_connect_at_ip(new_ip)
+                            if success:
+                                await self._update_device_ip(new_ip)
+                                await self._complete_successful_setup()
+                                return
                     
-                    self._initialized = True
-                    
-                    # Record successful recovery
-                    self.error_tracker.record_successful_poll()
-                    
-                    _LOGGER.info("Successfully reconnected offline device: %s", self.device_name)
-                    return
+                    # Both failed - increase retry interval
+                    retry_interval = min(retry_interval * 1.5, max_interval)
                     
                 except Exception:
-                    # Increase retry interval up to max
                     retry_interval = min(retry_interval * 1.5, max_interval)
                     continue
                     
@@ -419,18 +485,19 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
             pass
         except Exception as err:
             _LOGGER.error("Offline retry loop failed for %s: %s", self.device_name, err)
-    def _start_smart_error_detection(self) -> None:
-        """Start background task with smart error detection intervals."""
+
+    def _start_conservative_error_detection(self) -> None:
+        """Start background task with conservative error detection."""
         if self._error_detection_task:
             self._error_detection_task.cancel()
             
-        self._error_detection_task = asyncio.create_task(self._smart_error_detection_loop())
+        self._error_detection_task = asyncio.create_task(self._conservative_error_detection_loop())
 
-    async def _smart_error_detection_loop(self) -> None:
-        """Smart error detection loop with intelligent intervals and recovery."""
+    async def _conservative_error_detection_loop(self) -> None:
+        """Conservative error detection loop with IP recovery."""
         try:
             while self._initialized:
-                await asyncio.sleep(60)  # Check every minute instead of 20 seconds
+                await asyncio.sleep(120)  # Check every 2 minutes
                 
                 # Check if device is considered offline
                 if self.error_tracker.is_device_considered_offline():
@@ -440,52 +507,47 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
                     
                     if should_log:
                         time_offline = time.time() - self.error_tracker.last_successful_poll
-                        _LOGGER.warning("%s has been offline for %.0f seconds, checking connectivity", 
+                        _LOGGER.warning("%s has been offline for %.0f seconds", 
                                       self.device_name, time_offline)
                     
-                    # Attempt IP recovery if conditions are met
-                    if self.error_tracker.should_attempt_ip_recovery():
-                        await self._attempt_smart_ip_recovery()
+                    # Attempt conservative IP recovery
+                    if self.ip_recovery.can_attempt_recovery():
+                        await self._attempt_runtime_ip_recovery()
                         
-                else:
-                    # Device is responding normally, no action needed
-                    pass
-                    
         except asyncio.CancelledError:
             pass
         except Exception as err:
-            _LOGGER.error("Smart error detection loop failed for %s: %s", self.device_name, err)
+            _LOGGER.error("Conservative error detection loop failed for %s: %s", self.device_name, err)
 
-    async def _attempt_smart_ip_recovery(self) -> None:
-        """Attempt intelligent IP recovery with proper tracking."""
-        if not self.mac_address:
-            _LOGGER.debug("%s has no MAC address, cannot attempt IP recovery", self.device_name)
-            return
-            
-        self.error_tracker.start_ip_recovery_attempt()
+    async def _attempt_runtime_ip_recovery(self) -> Optional[str]:
+        """Attempt conservative IP recovery during runtime."""
+        self.ip_recovery.start_attempt()
         
         try:
             new_ip = await self._recover_device_ip()
             if new_ip and new_ip != self.device_ip:
                 _LOGGER.info("%s IP recovery found new address: %s -> %s", 
                            self.device_name, self.device_ip, new_ip)
-                await self._update_device_ip(new_ip)
                 await self._restart_polling_with_new_ip(new_ip)
+                return new_ip
             else:
-                _LOGGER.debug("%s IP recovery attempt %d failed - no new IP found", 
-                            self.device_name, self.error_tracker.ip_recovery_attempts)
+                _LOGGER.debug("%s IP recovery attempt found no new IP", self.device_name)
+                return None
                 
         except Exception as err:
-            _LOGGER.warning("%s IP recovery attempt %d failed: %s", 
-                          self.device_name, self.error_tracker.ip_recovery_attempts, err)
+            _LOGGER.debug("%s IP recovery attempt failed: %s", self.device_name, err)
+            return None
 
     async def _restart_polling_with_new_ip(self, new_ip: str) -> None:
         """Restart intelligent polling with new IP address."""
         try:
             # Stop current polling
-            await self.device.stop_adaptive_polling()
+            if self.device:
+                await self.device.stop_adaptive_polling()
+                await self.device.close()
             
-            # Create new device instance with new IP
+            # Update IP and create new device instance
+            await self._update_device_ip(new_ip)
             self.device = MaxSmartDevice(new_ip)
             await self.device.initialize_device()
             
@@ -493,16 +555,17 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
             await self.device.start_adaptive_polling(enable_burst=True)
             self.device.register_poll_callback("coordinator", self._on_poll_data)
             
-            _LOGGER.info("%s IP recovery successful, intelligent polling restarted with new IP %s", 
+            # Reset recovery state
+            self.ip_recovery.reset_on_success()
+            
+            _LOGGER.info("%s IP recovery successful, polling restarted with new IP %s", 
                        self.device_name, new_ip)
                        
         except Exception as err:
             _LOGGER.error("%s failed to restart polling with new IP: %s", self.device_name, err)
 
     async def _async_update_data(self) -> Dict[str, Any]:
-        """
-        Fallback update method for offline devices or when intelligent polling fails.
-        """
+        """Fallback update method for offline devices."""
         # For offline devices, return empty data to keep entities in unavailable state
         if not self._initialized:
             return {}
@@ -512,12 +575,13 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
             should_log = self.error_tracker.record_error("fallback_polling")
             
             if should_log:
-                _LOGGER.warning("%s using fallback polling (intelligent polling may have failed)", self.device_name)
+                _LOGGER.warning("%s using fallback polling", self.device_name)
             
             data = await self.device.get_data()
             
             # If fallback succeeds, record it
             self.error_tracker.record_successful_poll()
+            self.ip_recovery.reset_on_success()
             return data
             
         except Exception as err:
@@ -526,7 +590,7 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
             if should_log and not self.error_tracker.in_cascade:
                 _LOGGER.error("%s fallback polling failed: %s", self.device_name, err)
                 
-            # Return empty data instead of raising UpdateFailed to keep integration loaded
+            # Return empty data instead of raising UpdateFailed
             return {}
 
     async def _recover_device_ip(self) -> Optional[str]:
@@ -534,7 +598,7 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         if not self.mac_address:
             return None
             
-        _LOGGER.debug("Starting IP recovery for device %s with MAC %s", self.device_name, self.mac_address)
+        _LOGGER.debug("Starting IP recovery for %s with MAC %s", self.device_name, self.mac_address)
         
         # Method 1: ARP table lookup
         new_ip = await self._get_ip_from_arp_table(self.mac_address)
@@ -678,9 +742,8 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         try:
             _LOGGER.debug("Turning on port %d for %s", port_id, self.device_name)
             
-            await self.device.turn_on(port_id)  # This triggers burst mode automatically
-            _LOGGER.debug("Port %d turned on successfully for %s - burst mode activated", 
-                         port_id, self.device_name)
+            await self.device.turn_on(port_id)
+            _LOGGER.debug("Port %d turned on successfully for %s", port_id, self.device_name)
             return True
             
         except Exception as err:
@@ -698,9 +761,8 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         try:
             _LOGGER.debug("Turning off port %d for %s", port_id, self.device_name)
             
-            await self.device.turn_off(port_id)  # This triggers burst mode automatically
-            _LOGGER.debug("Port %d turned off successfully for %s - burst mode activated", 
-                         port_id, self.device_name)
+            await self.device.turn_off(port_id)
+            _LOGGER.debug("Port %d turned off successfully for %s", port_id, self.device_name)
             return True
             
         except Exception as err:
@@ -727,6 +789,9 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
                 "mac_address": self.mac_address,
                 "identification_method": self.identification_method,
                 
+                # Conservative IP recovery status
+                "ip_recovery": self.ip_recovery.get_status(),
+                
                 # Smart polling statistics
                 "polling_system": "maxsmart_intelligent",
                 "polling_active": self.device.is_polling if self.device else False,
@@ -735,7 +800,7 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
                 # Smart error tracking
                 "error_tracker": self.error_tracker.get_status_summary(),
                 
-                # IP recovery info
+                # Support capabilities
                 "supports_ip_recovery": bool(self.mac_address),
             }
             
@@ -762,34 +827,67 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         """Reload coordinator when config entry is updated."""
         _LOGGER.info("Reloading coordinator for %s due to config change", self.device_name)
         
+        old_ip = self.device_ip
+        old_device_name = self.device_name
+        
+        # Update coordinator properties from new config
         self.device_name = self.config_entry.data["device_name"]
         self.name = f"MaxSmart {self.device_name}"
         
         new_ip = self.config_entry.data["device_ip"]
-        if new_ip != self.device_ip:
-            _LOGGER.info("Device IP updated in config: %s → %s", self.device_ip, new_ip)
-            self.device_ip = new_ip
+        
+        # Check what changed
+        ip_changed = new_ip != old_ip
+        device_name_changed = self.device_name != old_device_name
+        
+        if ip_changed:
+            _LOGGER.info("Device IP updated in config: %s → %s", old_ip, new_ip)
+            await self._handle_manual_ip_change(new_ip)
+        elif device_name_changed:
+            _LOGGER.info("Device name updated: %s → %s", old_device_name, self.device_name)
+            # Just name changes, no reconnection needed
+        else:
+            # Only port names changed, coordinator doesn't need to reconnect
+            _LOGGER.debug("Port names updated for %s, no coordinator changes needed", self.device_name)
+
+    async def _handle_manual_ip_change(self, new_ip: str) -> None:
+        """Handle manual IP address change from options flow."""
+        self.device_ip = new_ip
+        
+        # Cancel error detection task
+        if self._error_detection_task:
+            self._error_detection_task.cancel()
             
-            # Restart intelligent polling with new IP
-            if self.device:
+        # Stop current device connection
+        if self.device:
+            try:
                 await self.device.stop_adaptive_polling()
                 await self.device.close()
+            except Exception as err:
+                _LOGGER.debug("Error stopping device during IP change: %s", err)
                 
-            self.device = None
-            self._initialized = False
+        self.device = None
+        self._initialized = False
+        
+        # Reset trackers for fresh start with new IP
+        self.error_tracker = SmartErrorTracker(self.device_name)
+        # Keep IP recovery state - user manually changed IP so reset attempts
+        self.ip_recovery = ConservativeIPRecovery(self.device_name, self.mac_address)
+        
+        # Immediately try to connect to new IP
+        try:
+            _LOGGER.info("Attempting immediate connection to new IP: %s", new_ip)
+            await self._complete_successful_setup()
+            _LOGGER.info("Successfully connected to %s at new IP %s", self.device_name, new_ip)
             
-            # Cancel error detection task
-            if self._error_detection_task:
-                self._error_detection_task.cancel()
-                
-            # Reset error tracker
-            self.error_tracker = SmartErrorTracker(self.device_name)
-                
-            await self._async_setup()
+        except Exception as err:
+            _LOGGER.warning("Failed to connect to new IP %s for %s: %s", new_ip, self.device_name, err)
+            # Create resilient setup for the new IP
+            self._create_resilient_setup()
 
     async def async_shutdown(self) -> None:
         """Shutdown coordinator with intelligent polling cleanup."""
-        _LOGGER.debug("Shutting down coordinator with intelligent polling for %s", self.device_name)
+        _LOGGER.debug("Shutting down coordinator for %s", self.device_name)
         
         if self.device:
             try:

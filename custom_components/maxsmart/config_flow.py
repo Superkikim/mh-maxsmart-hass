@@ -1,5 +1,5 @@
 # custom_components/maxsmart/config_flow.py
-"""Enhanced config flow with improved device identification and filtering."""
+"""Enhanced config flow with IP management in options and improved device identification."""
 
 from __future__ import annotations
 
@@ -345,6 +345,182 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return errors
 
+    async def _update_entity_names_if_changed(self, new_data: Dict[str, Any]) -> None:
+        """Update entity friendly names when port names change."""
+        try:
+            from homeassistant.helpers import entity_registry as er
+            entity_registry = er.async_get(self.hass)
+            
+            old_data = self.config_entry.data
+            device_unique_id = old_data["device_unique_id"]
+            port_count = old_data.get("port_count", 6)
+            
+            # Check for port name changes
+            port_name_changes = {}
+            for port_id in range(1, port_count + 1):
+                port_key = f"port_{port_id}_name"
+                old_name = old_data.get(port_key, f"Port {port_id}")
+                new_name = new_data.get(port_key, f"Port {port_id}")
+                
+                if old_name != new_name:
+                    port_name_changes[port_id] = {"old": old_name, "new": new_name}
+            
+            # Check for device name changes
+            device_name_changed = old_data.get("device_name") != new_data.get("device_name")
+            
+            if not port_name_changes and not device_name_changed:
+                return  # No name changes to apply
+            
+            _LOGGER.info("Updating entity names for %s: %d port name changes, device name changed: %s", 
+                        old_data["device_name"], len(port_name_changes), device_name_changed)
+            
+            # Update port entities (switches and sensors)
+            for port_id, change in port_name_changes.items():
+                await self._update_port_entity_names(entity_registry, device_unique_id, port_id, change["new"])
+            
+            # Update device name in all entities if device name changed
+            if device_name_changed:
+                await self._update_device_name_in_entities(entity_registry, device_unique_id, new_data["device_name"])
+                
+        except Exception as err:
+            _LOGGER.error("Failed to update entity names: %s", err)
+    
+    async def _update_port_entity_names(self, entity_registry, device_unique_id: str, port_id: int, new_port_name: str) -> None:
+        """Update entity names for a specific port."""
+        # Update switch entity
+        switch_unique_id = f"{device_unique_id}_{port_id}"
+        switch_entity_id = entity_registry.async_get_entity_id("switch", "maxsmart", switch_unique_id)
+        
+        if switch_entity_id:
+            entity_registry.async_update_entity(
+                switch_entity_id,
+                name=new_port_name
+            )
+            _LOGGER.debug("Updated switch entity name: %s -> %s", switch_entity_id, new_port_name)
+        
+        # Update power sensor entity
+        sensor_unique_id = f"{device_unique_id}_{port_id}_power"
+        sensor_entity_id = entity_registry.async_get_entity_id("sensor", "maxsmart", sensor_unique_id)
+        
+        if sensor_entity_id:
+            entity_registry.async_update_entity(
+                sensor_entity_id,
+                name=f"{new_port_name} Power"
+            )
+            _LOGGER.debug("Updated sensor entity name: %s -> %s Power", sensor_entity_id, new_port_name)
+    
+    async def _update_device_name_in_entities(self, entity_registry, device_unique_id: str, new_device_name: str) -> None:
+        """Update device name in master entities (for multi-port devices)."""
+        # Update master switch
+        master_switch_unique_id = f"{device_unique_id}_0"
+        master_switch_entity_id = entity_registry.async_get_entity_id("switch", "maxsmart", master_switch_unique_id)
+        
+        if master_switch_entity_id:
+            entity_registry.async_update_entity(
+                master_switch_entity_id,
+                name="Master"  # Keep it simple, just "Master"
+            )
+            _LOGGER.debug("Updated master switch entity name: %s", master_switch_entity_id)
+        
+        # Update total power sensor
+        total_power_unique_id = f"{device_unique_id}_0_power"
+        total_power_entity_id = entity_registry.async_get_entity_id("sensor", "maxsmart", total_power_unique_id)
+        
+        if total_power_entity_id:
+            entity_registry.async_update_entity(
+                total_power_entity_id,
+                name="Total Power"  # Keep it simple, just "Total Power"
+            )
+            _LOGGER.debug("Updated total power sensor entity name: %s", total_power_entity_id)
+    
+    async def _update_entity_names_if_changed(self, new_data: Dict[str, Any]) -> None:
+        """Update entity friendly names when port names change."""
+        try:
+            from homeassistant.helpers import entity_registry as er
+            entity_registry = er.async_get(self.hass)
+            
+            old_data = self.config_entry.data
+            device_unique_id = old_data["device_unique_id"]
+            port_count = old_data.get("port_count", 6)
+            
+            # Check for port name changes
+            port_name_changes = {}
+            for port_id in range(1, port_count + 1):
+                port_key = f"port_{port_id}_name"
+                old_name = old_data.get(port_key, f"Port {port_id}")
+                new_name = new_data.get(port_key, f"Port {port_id}")
+                
+                if old_name != new_name:
+                    port_name_changes[port_id] = {"old": old_name, "new": new_name}
+            
+            # Check for device name changes
+            device_name_changed = old_data.get("device_name") != new_data.get("device_name")
+            
+            if not port_name_changes and not device_name_changed:
+                return  # No name changes to apply
+            
+            _LOGGER.info("Updating entity names for %s: %d port name changes, device name changed: %s", 
+                        old_data["device_name"], len(port_name_changes), device_name_changed)
+            
+            # Update port entities (switches and sensors)
+            for port_id, change in port_name_changes.items():
+                await self._update_port_entity_names(entity_registry, device_unique_id, port_id, change["new"])
+            
+            # Update device name in all entities if device name changed
+            if device_name_changed:
+                await self._update_device_name_in_entities(entity_registry, device_unique_id, new_data["device_name"])
+                
+        except Exception as err:
+            _LOGGER.error("Failed to update entity names: %s", err)
+    
+    async def _update_port_entity_names(self, entity_registry, device_unique_id: str, port_id: int, new_port_name: str) -> None:
+        """Update entity names for a specific port."""
+        # Update switch entity
+        switch_unique_id = f"{device_unique_id}_{port_id}"
+        switch_entity_id = entity_registry.async_get_entity_id("switch", "maxsmart", switch_unique_id)
+        
+        if switch_entity_id:
+            entity_registry.async_update_entity(
+                switch_entity_id,
+                name=new_port_name
+            )
+            _LOGGER.debug("Updated switch entity name: %s -> %s", switch_entity_id, new_port_name)
+        
+        # Update power sensor entity
+        sensor_unique_id = f"{device_unique_id}_{port_id}_power"
+        sensor_entity_id = entity_registry.async_get_entity_id("sensor", "maxsmart", sensor_unique_id)
+        
+        if sensor_entity_id:
+            entity_registry.async_update_entity(
+                sensor_entity_id,
+                name=f"{new_port_name} Power"
+            )
+            _LOGGER.debug("Updated sensor entity name: %s -> %s Power", sensor_entity_id, new_port_name)
+    
+    async def _update_device_name_in_entities(self, entity_registry, device_unique_id: str, new_device_name: str) -> None:
+        """Update device name in master entities (for multi-port devices)."""
+        # Update master switch
+        master_switch_unique_id = f"{device_unique_id}_0"
+        master_switch_entity_id = entity_registry.async_get_entity_id("switch", "maxsmart", master_switch_unique_id)
+        
+        if master_switch_entity_id:
+            entity_registry.async_update_entity(
+                master_switch_entity_id,
+                name="Master"  # Keep it simple, just "Master"
+            )
+            _LOGGER.debug("Updated master switch entity name: %s", master_switch_entity_id)
+        
+        # Update total power sensor
+        total_power_unique_id = f"{device_unique_id}_0_power"
+        total_power_entity_id = entity_registry.async_get_entity_id("sensor", "maxsmart", total_power_unique_id)
+        
+        if total_power_entity_id:
+            entity_registry.async_update_entity(
+                total_power_entity_id,
+                name="Total Power"  # Keep it simple, just "Total Power"
+            )
+            _LOGGER.debug("Updated total power sensor entity name: %s", total_power_entity_id)
+
     def _is_serial_reliable(self, sn: str) -> bool:
         """Check if UDP serial number is reliable."""
         return (
@@ -413,7 +589,7 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class MaxSmartOptionsFlow(config_entries.OptionsFlow):
-    """Handle options flow for MaxSmart devices."""
+    """Handle options flow for MaxSmart devices with IP management."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
@@ -422,15 +598,28 @@ class MaxSmartOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
-        """Handle options flow initialization."""
+        """Handle options flow with IP address management at the top."""
         errors: Dict[str, str] = {}
 
         if user_input is not None:
+            # Validate IP address first
+            ip_address = user_input["device_ip"].strip()
+            try:
+                ipaddress.ip_address(ip_address)
+            except ValueError:
+                errors["device_ip"] = "invalid_ip"
+            
             # Validate names
-            validation_errors = self._validate_names(user_input)
-            if validation_errors:
-                errors.update(validation_errors)
-            else:
+            name_validation_errors = self._validate_names(user_input)
+            if name_validation_errors:
+                errors.update(name_validation_errors)
+            
+            if not errors:
+                # Check if IP changed
+                old_ip = self.config_entry.data.get("device_ip")
+                new_ip = ip_address
+                ip_changed = old_ip != new_ip
+                
                 # Update config entry data
                 new_data = {**self.config_entry.data}
                 new_data.update(user_input)
@@ -440,7 +629,29 @@ class MaxSmartOptionsFlow(config_entries.OptionsFlow):
                     data=new_data
                 )
                 
-                # Reload the integration to apply new names
+                if ip_changed:
+                    _LOGGER.info("IP address changed for %s: %s → %s", 
+                               self.config_entry.data["device_name"], old_ip, new_ip)
+                    
+                    # Show notification about IP change
+                    try:
+                        await self.hass.services.async_call(
+                            "persistent_notification", 
+                            "create",
+                            {
+                                "title": "MaxSmart IP Address Updated",
+                                "message": f"Device '{self.config_entry.data['device_name']}' IP address updated to {new_ip}. "
+                                          f"The device will reconnect automatically.",
+                                "notification_id": f"maxsmart_ip_change_{self.config_entry.entry_id}"
+                            }
+                        )
+                    except Exception as err:
+                        _LOGGER.warning("Failed to show IP change notification: %s", err)
+                
+                # Update entity names if port names changed
+                await self._update_entity_names_if_changed(new_data)
+                
+                # Reload the integration to apply changes
                 await self.hass.config_entries.async_reload(self.config_entry.entry_id)
                 
                 return self.async_create_entry(title="", data={})
@@ -448,12 +659,16 @@ class MaxSmartOptionsFlow(config_entries.OptionsFlow):
         # Get current values
         current_data = self.config_entry.data
         port_count = current_data.get("port_count", 6)
+        current_ip = current_data.get("device_ip", "")
+        current_device_name = current_data.get("device_name", "")
 
-        # Build schema with current values
+        # Build schema with IP address at the top (most important)
         schema_dict = {
-            vol.Required("device_name", default=current_data["device_name"]): str,
+            vol.Required("device_ip", default=current_ip): str,
+            vol.Required("device_name", default=current_device_name): str,
         }
 
+        # Add port name fields
         for port_id in range(1, port_count + 1):
             port_key = f"port_{port_id}_name"
             current_name = current_data.get(port_key, f"Port {port_id}")
@@ -465,13 +680,17 @@ class MaxSmartOptionsFlow(config_entries.OptionsFlow):
             errors=errors,
         )
 
-    def _validate_names(self, names: Dict[str, Any]) -> Dict[str, str]:
-        """Validate all provided names."""
+    def _validate_names(self, user_input: Dict[str, Any]) -> Dict[str, str]:
+        """Validate all provided names (excludes IP address)."""
         errors = {}
         used_names = set()
 
-        for key, name in names.items():
-            name = name.strip()
+        for key, value in user_input.items():
+            # Skip IP address validation (handled separately)
+            if key == "device_ip":
+                continue
+                
+            name = str(value).strip()
             
             if not name:
                 errors[key] = "name_required"
@@ -485,10 +704,13 @@ class MaxSmartOptionsFlow(config_entries.OptionsFlow):
                 errors[key] = "invalid_characters"
                 continue
                 
-            if name.lower() in used_names:
+            # Check for duplicates
+            name_lower = name.lower()
+            if name_lower in used_names:
                 errors[key] = "name_duplicate"
                 continue
                 
-            used_names.add(name.lower())
+            # ONLY add to used_names if ALL validations passed
+            used_names.add(name_lower)
 
         return errors
