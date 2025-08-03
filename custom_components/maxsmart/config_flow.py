@@ -21,7 +21,7 @@ from .discovery import async_discover_devices, async_discover_device_by_ip
 _LOGGER = logging.getLogger(__name__)
 
 # Validation patterns
-NAME_PATTERN = re.compile(r'^[a-zA-Z0-9\s\-_\.]+$')
+NAME_PATTERN = re.compile(r'^[\w\s\-\.]+$', re.UNICODE)
 MAX_NAME_LENGTH = 50
 
 class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
