@@ -416,19 +416,14 @@ class MaxSmartOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for MaxSmart devices."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow - FIXED: Remove deprecated config_entry assignment."""
-        # REMOVED: self.config_entry = config_entry (deprecated in HA 2025.12)
-        # Instead, we'll pass config_entry as parameter to methods that need it
-        pass
+        """Initialize options flow."""
+        self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
         """Handle options flow initialization."""
         errors: Dict[str, str] = {}
-        
-        # Get config entry from the flow handler
-        config_entry = self.handler.config_entry
 
         if user_input is not None:
             # Validate names
@@ -437,21 +432,21 @@ class MaxSmartOptionsFlow(config_entries.OptionsFlow):
                 errors.update(validation_errors)
             else:
                 # Update config entry data
-                new_data = {**config_entry.data}
+                new_data = {**self.config_entry.data}
                 new_data.update(user_input)
                 
                 self.hass.config_entries.async_update_entry(
-                    config_entry,
+                    self.config_entry,
                     data=new_data
                 )
                 
                 # Reload the integration to apply new names
-                await self.hass.config_entries.async_reload(config_entry.entry_id)
+                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
                 
                 return self.async_create_entry(title="", data={})
 
         # Get current values
-        current_data = config_entry.data
+        current_data = self.config_entry.data
         port_count = current_data.get("port_count", 6)
 
         # Build schema with current values
