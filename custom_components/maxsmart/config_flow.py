@@ -6,14 +6,13 @@ from __future__ import annotations
 import ipaddress
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import selector
 
 from .const import DOMAIN
 from .discovery import async_discover_devices, async_discover_device_by_ip
@@ -32,7 +31,8 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> MaxSmartOptionsFlow:
         """Get the options flow for this handler."""
-        return MaxSmartOptionsFlow(config_entry)
+        # config_entry is automatically provided by Home Assistant to the OptionsFlow
+        return MaxSmartOptionsFlow()
 
     def __init__(self):
         """Initialize config flow."""
@@ -220,7 +220,7 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             
             # Hardware identifiers (new)
             "cpu_id": device.get("cpu_id", ""),
-            "mac_address": device.get("mac_address", ""),
+            "mac_address": device.get("mac", ""),  # Fixed: use "mac" key from discovery
             "udp_serial": device.get("sn", ""),
             "identification_method": device.get("identification_method", "fallback"),
             
@@ -242,14 +242,14 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _get_device_unique_id(self, device: Dict[str, Any]) -> str:
         """Extract the best unique ID from enhanced device data."""
-        # Priority order: CPU ID -> MAC -> UDP Serial -> IP
-        if device.get("cpu_id"):
-            return f"cpu_{device['cpu_id']}"
-        elif device.get("mac_address"):
-            mac_clean = device["mac_address"].replace(':', '').lower()
+        # 2025.8.1: Back to original priority order: Serial -> MAC -> CPU ID -> IP
+        if device.get("sn") and self._is_serial_reliable(device["sn"]):
+            return device["sn"]  # Use serial directly (no prefix)
+        elif device.get("mac"):  # Fixed: use "mac" key from discovery
+            mac_clean = device["mac"].replace(':', '').lower()
             return f"mac_{mac_clean}"
-        elif device.get("sn") and self._is_serial_reliable(device["sn"]):
-            return f"sn_{device['sn']}"
+        elif device.get("cpuid"):
+            return f"cpu_{device['cpuid']}"
         else:
             ip_clean = device["ip"].replace('.', '_')
             return f"ip_{ip_clean}"
@@ -301,8 +301,8 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if device.get("cpu_id"):
             lines.append(f"CPU ID: {device['cpu_id'][:16]}...")
             
-        if device.get("mac_address"):
-            lines.append(f"MAC: {device['mac_address']}")
+        if device.get("mac"):  # Fixed: use "mac" key from discovery
+            lines.append(f"MAC: {device['mac']}")
             
         if device.get("sn"):
             lines.append(f"Serial: {device['sn']}")
@@ -345,181 +345,7 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return errors
 
-    async def _update_entity_names_if_changed(self, new_data: Dict[str, Any]) -> None:
-        """Update entity friendly names when port names change."""
-        try:
-            from homeassistant.helpers import entity_registry as er
-            entity_registry = er.async_get(self.hass)
-            
-            old_data = self.config_entry.data
-            device_unique_id = old_data["device_unique_id"]
-            port_count = old_data.get("port_count", 6)
-            
-            # Check for port name changes
-            port_name_changes = {}
-            for port_id in range(1, port_count + 1):
-                port_key = f"port_{port_id}_name"
-                old_name = old_data.get(port_key, f"Port {port_id}")
-                new_name = new_data.get(port_key, f"Port {port_id}")
-                
-                if old_name != new_name:
-                    port_name_changes[port_id] = {"old": old_name, "new": new_name}
-            
-            # Check for device name changes
-            device_name_changed = old_data.get("device_name") != new_data.get("device_name")
-            
-            if not port_name_changes and not device_name_changed:
-                return  # No name changes to apply
-            
-            _LOGGER.info("Updating entity names for %s: %d port name changes, device name changed: %s", 
-                        old_data["device_name"], len(port_name_changes), device_name_changed)
-            
-            # Update port entities (switches and sensors)
-            for port_id, change in port_name_changes.items():
-                await self._update_port_entity_names(entity_registry, device_unique_id, port_id, change["new"])
-            
-            # Update device name in all entities if device name changed
-            if device_name_changed:
-                await self._update_device_name_in_entities(entity_registry, device_unique_id, new_data["device_name"])
-                
-        except Exception as err:
-            _LOGGER.error("Failed to update entity names: %s", err)
-    
-    async def _update_port_entity_names(self, entity_registry, device_unique_id: str, port_id: int, new_port_name: str) -> None:
-        """Update entity names for a specific port."""
-        # Update switch entity
-        switch_unique_id = f"{device_unique_id}_{port_id}"
-        switch_entity_id = entity_registry.async_get_entity_id("switch", "maxsmart", switch_unique_id)
-        
-        if switch_entity_id:
-            entity_registry.async_update_entity(
-                switch_entity_id,
-                name=new_port_name
-            )
-            _LOGGER.debug("Updated switch entity name: %s -> %s", switch_entity_id, new_port_name)
-        
-        # Update power sensor entity
-        sensor_unique_id = f"{device_unique_id}_{port_id}_power"
-        sensor_entity_id = entity_registry.async_get_entity_id("sensor", "maxsmart", sensor_unique_id)
-        
-        if sensor_entity_id:
-            entity_registry.async_update_entity(
-                sensor_entity_id,
-                name=f"{new_port_name} Power"
-            )
-            _LOGGER.debug("Updated sensor entity name: %s -> %s Power", sensor_entity_id, new_port_name)
-    
-    async def _update_device_name_in_entities(self, entity_registry, device_unique_id: str, new_device_name: str) -> None:
-        """Update device name in master entities (for multi-port devices)."""
-        # Update master switch
-        master_switch_unique_id = f"{device_unique_id}_0"
-        master_switch_entity_id = entity_registry.async_get_entity_id("switch", "maxsmart", master_switch_unique_id)
-        
-        if master_switch_entity_id:
-            entity_registry.async_update_entity(
-                master_switch_entity_id,
-                name="Master"  # Keep it simple, just "Master"
-            )
-            _LOGGER.debug("Updated master switch entity name: %s", master_switch_entity_id)
-        
-        # Update total power sensor
-        total_power_unique_id = f"{device_unique_id}_0_power"
-        total_power_entity_id = entity_registry.async_get_entity_id("sensor", "maxsmart", total_power_unique_id)
-        
-        if total_power_entity_id:
-            entity_registry.async_update_entity(
-                total_power_entity_id,
-                name="Total Power"  # Keep it simple, just "Total Power"
-            )
-            _LOGGER.debug("Updated total power sensor entity name: %s", total_power_entity_id)
-    
-    async def _update_entity_names_if_changed(self, new_data: Dict[str, Any]) -> None:
-        """Update entity friendly names when port names change."""
-        try:
-            from homeassistant.helpers import entity_registry as er
-            entity_registry = er.async_get(self.hass)
-            
-            old_data = self.config_entry.data
-            device_unique_id = old_data["device_unique_id"]
-            port_count = old_data.get("port_count", 6)
-            
-            # Check for port name changes
-            port_name_changes = {}
-            for port_id in range(1, port_count + 1):
-                port_key = f"port_{port_id}_name"
-                old_name = old_data.get(port_key, f"Port {port_id}")
-                new_name = new_data.get(port_key, f"Port {port_id}")
-                
-                if old_name != new_name:
-                    port_name_changes[port_id] = {"old": old_name, "new": new_name}
-            
-            # Check for device name changes
-            device_name_changed = old_data.get("device_name") != new_data.get("device_name")
-            
-            if not port_name_changes and not device_name_changed:
-                return  # No name changes to apply
-            
-            _LOGGER.info("Updating entity names for %s: %d port name changes, device name changed: %s", 
-                        old_data["device_name"], len(port_name_changes), device_name_changed)
-            
-            # Update port entities (switches and sensors)
-            for port_id, change in port_name_changes.items():
-                await self._update_port_entity_names(entity_registry, device_unique_id, port_id, change["new"])
-            
-            # Update device name in all entities if device name changed
-            if device_name_changed:
-                await self._update_device_name_in_entities(entity_registry, device_unique_id, new_data["device_name"])
-                
-        except Exception as err:
-            _LOGGER.error("Failed to update entity names: %s", err)
-    
-    async def _update_port_entity_names(self, entity_registry, device_unique_id: str, port_id: int, new_port_name: str) -> None:
-        """Update entity names for a specific port."""
-        # Update switch entity
-        switch_unique_id = f"{device_unique_id}_{port_id}"
-        switch_entity_id = entity_registry.async_get_entity_id("switch", "maxsmart", switch_unique_id)
-        
-        if switch_entity_id:
-            entity_registry.async_update_entity(
-                switch_entity_id,
-                name=new_port_name
-            )
-            _LOGGER.debug("Updated switch entity name: %s -> %s", switch_entity_id, new_port_name)
-        
-        # Update power sensor entity
-        sensor_unique_id = f"{device_unique_id}_{port_id}_power"
-        sensor_entity_id = entity_registry.async_get_entity_id("sensor", "maxsmart", sensor_unique_id)
-        
-        if sensor_entity_id:
-            entity_registry.async_update_entity(
-                sensor_entity_id,
-                name=f"{new_port_name} Power"
-            )
-            _LOGGER.debug("Updated sensor entity name: %s -> %s Power", sensor_entity_id, new_port_name)
-    
-    async def _update_device_name_in_entities(self, entity_registry, device_unique_id: str, new_device_name: str) -> None:
-        """Update device name in master entities (for multi-port devices)."""
-        # Update master switch
-        master_switch_unique_id = f"{device_unique_id}_0"
-        master_switch_entity_id = entity_registry.async_get_entity_id("switch", "maxsmart", master_switch_unique_id)
-        
-        if master_switch_entity_id:
-            entity_registry.async_update_entity(
-                master_switch_entity_id,
-                name="Master"  # Keep it simple, just "Master"
-            )
-            _LOGGER.debug("Updated master switch entity name: %s", master_switch_entity_id)
-        
-        # Update total power sensor
-        total_power_unique_id = f"{device_unique_id}_0_power"
-        total_power_entity_id = entity_registry.async_get_entity_id("sensor", "maxsmart", total_power_unique_id)
-        
-        if total_power_entity_id:
-            entity_registry.async_update_entity(
-                total_power_entity_id,
-                name="Total Power"  # Keep it simple, just "Total Power"
-            )
-            _LOGGER.debug("Updated total power sensor entity name: %s", total_power_entity_id)
+
 
     def _is_serial_reliable(self, sn: str) -> bool:
         """Check if UDP serial number is reliable."""
@@ -564,7 +390,7 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return True
         
         # Method 4: Check by MAC address (if available)
-        device_mac = device.get("mac_address") or device.get("pclmac")
+        device_mac = device.get("mac") or device.get("pclmac")  # Fixed: use "mac" key from discovery
         if device_mac:
             normalized_mac = self._normalize_mac(device_mac)
             for entry in self.hass.config_entries.async_entries(DOMAIN):
@@ -591,9 +417,8 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class MaxSmartOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for MaxSmart devices with IP management."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+    def __init__(self) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: Optional[Dict[str, Any]] = None
@@ -714,3 +539,92 @@ class MaxSmartOptionsFlow(config_entries.OptionsFlow):
             used_names.add(name_lower)
 
         return errors
+
+    async def _update_entity_names_if_changed(self, new_data: Dict[str, Any]) -> None:
+        """Update entity friendly names when port names change."""
+        try:
+            from homeassistant.helpers import entity_registry as er
+            entity_registry = er.async_get(self.hass)
+
+            old_data = self.config_entry.data
+            device_unique_id = old_data["device_unique_id"]
+            port_count = old_data.get("port_count", 6)
+
+            # Check for port name changes
+            port_name_changes = {}
+            for port_id in range(1, port_count + 1):
+                port_key = f"port_{port_id}_name"
+                old_name = old_data.get(port_key, f"Port {port_id}")
+                new_name = new_data.get(port_key, f"Port {port_id}")
+
+                if old_name != new_name:
+                    port_name_changes[port_id] = {"old": old_name, "new": new_name}
+
+            # Check for device name changes
+            device_name_changed = old_data.get("device_name") != new_data.get("device_name")
+
+            if not port_name_changes and not device_name_changed:
+                return  # No name changes to apply
+
+            _LOGGER.info("Updating entity names for %s: %d port name changes, device name changed: %s",
+                        old_data["device_name"], len(port_name_changes), device_name_changed)
+
+            # Update port entities (switches and sensors)
+            for port_id, change in port_name_changes.items():
+                await self._update_port_entity_names(entity_registry, device_unique_id, port_id, change["new"])
+
+            # Update device name in all entities if device name changed
+            if device_name_changed:
+                await self._update_device_name_in_entities(entity_registry, device_unique_id, new_data["device_name"])
+
+        except Exception as err:
+            _LOGGER.error("Failed to update entity names: %s", err)
+
+    async def _update_port_entity_names(self, entity_registry, device_unique_id: str, port_id: int, new_port_name: str) -> None:
+        """Update entity names for a specific port."""
+        # Update switch entity
+        switch_unique_id = f"{device_unique_id}_{port_id}"
+        switch_entity_id = entity_registry.async_get_entity_id("switch", "maxsmart", switch_unique_id)
+
+        if switch_entity_id:
+            entity_registry.async_update_entity(
+                switch_entity_id,
+                name=new_port_name
+            )
+            _LOGGER.debug("Updated switch entity name: %s -> %s", switch_entity_id, new_port_name)
+
+        # Update power sensor entity
+        sensor_unique_id = f"{device_unique_id}_{port_id}_power"
+        sensor_entity_id = entity_registry.async_get_entity_id("sensor", "maxsmart", sensor_unique_id)
+
+        if sensor_entity_id:
+            entity_registry.async_update_entity(
+                sensor_entity_id,
+                name=f"{new_port_name} Power"
+            )
+            _LOGGER.debug("Updated sensor entity name: %s -> %s Power", sensor_entity_id, new_port_name)
+
+    async def _update_device_name_in_entities(self, entity_registry, device_unique_id: str, new_device_name: str) -> None:
+        """Update device name in master entities (for multi-port devices)."""
+        # Note: new_device_name is intentionally not used here to keep entity names simple
+        # Update master switch
+        master_switch_unique_id = f"{device_unique_id}_0"
+        master_switch_entity_id = entity_registry.async_get_entity_id("switch", "maxsmart", master_switch_unique_id)
+
+        if master_switch_entity_id:
+            entity_registry.async_update_entity(
+                master_switch_entity_id,
+                name="Master"  # Keep it simple, just "Master"
+            )
+            _LOGGER.debug("Updated master switch entity name: %s", master_switch_entity_id)
+
+        # Update total power sensor
+        total_power_unique_id = f"{device_unique_id}_0_power"
+        total_power_entity_id = entity_registry.async_get_entity_id("sensor", "maxsmart", total_power_unique_id)
+
+        if total_power_entity_id:
+            entity_registry.async_update_entity(
+                total_power_entity_id,
+                name="Total Power"  # Keep it simple, just "Total Power"
+            )
+            _LOGGER.debug("Updated total power sensor entity name: %s", total_power_entity_id)

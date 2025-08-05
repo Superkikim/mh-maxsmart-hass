@@ -38,13 +38,16 @@ async def async_discover_devices(enhance_with_hardware: bool = True) -> List[Dic
                 devices = await _enhance_devices_manually(devices)
         
         if devices:
-            _LOGGER.info("Found %d MaxSmart device(s) with enhanced identification", len(devices))
-            for device in devices:
-                _log_device_summary(device)
+            _LOGGER.info("🔍 DISCOVERY: Found %d MaxSmart device(s)", len(devices))
+            for i, device in enumerate(devices):
+                _LOGGER.debug("🔍 DISCOVERY: Device %d = %s", i+1, device)
+                _LOGGER.debug("🔍 DISCOVERY: Device %d - IP: %s, MAC: %s, CPU: %s",
+                             i+1, device.get("ip"), device.get("mac"), device.get("cpuid"))
         else:
-            _LOGGER.info("No MaxSmart devices found on network")
-            
-        return _normalize_device_data(devices)
+            _LOGGER.info("🔍 DISCOVERY: No MaxSmart devices found on network")
+
+        # Return devices exactly as provided by maxsmart library - NO NORMALIZATION!
+        return devices or []
         
     except DiscoveryError as err:
         _LOGGER.warning("MaxSmart discovery failed: %s", err)
@@ -88,7 +91,8 @@ async def async_discover_device_by_ip(ip_address: str, enhance_with_hardware: bo
                         device.get("name", "Unknown"), 
                         device.get("ip", "Unknown"),
                         _get_device_summary_id(device))
-            return _normalize_device_data([device])[0]
+            # Return device exactly as provided by maxsmart library - NO NORMALIZATION!
+            return device
         else:
             _LOGGER.warning("No MaxSmart device found at %s", ip_address)
             return None

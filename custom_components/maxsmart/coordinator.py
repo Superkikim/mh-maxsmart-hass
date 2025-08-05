@@ -129,32 +129,47 @@ class ConservativeIPRecovery:
             
     def can_attempt_recovery(self, current_time: float) -> bool:
         """Check if IP recovery can be attempted based on escalating timeline."""
+        _LOGGER.debug("%s IP recovery check: MAC=%s, exhausted=%s, attempts=%d/%d",
+                     self.device_name, self.mac_address[:8] + "..." if self.mac_address else "None",
+                     self.exhausted, self.attempts_made, self.max_attempts)
+
         if not self.mac_address:
+            _LOGGER.debug("%s IP recovery blocked: No MAC address available", self.device_name)
             return False
-            
+
         if self.exhausted:
+            _LOGGER.debug("%s IP recovery blocked: Recovery exhausted", self.device_name)
             return False
-            
+
         if self.attempts_made >= self.max_attempts:
             self.exhausted = True
-            _LOGGER.info("%s IP recovery exhausted (%d/%d attempts), device requires manual intervention", 
+            _LOGGER.info("%s IP recovery exhausted (%d/%d attempts), device requires manual intervention",
                         self.device_name, self.attempts_made, self.max_attempts)
             return False
-        
+
         # Check if device has been offline long enough for next attempt
         if self.device_offline_start is None:
+            _LOGGER.debug("%s IP recovery blocked: No offline start time set", self.device_name)
             return False
-            
+
         time_offline = current_time - self.device_offline_start
         required_offline_time = self.escalation_timeline[self.attempts_made]
-        
+
+        _LOGGER.debug("%s IP recovery timing: offline=%.0fs, required=%.0fs, next_attempt=%d",
+                     self.device_name, time_offline, required_offline_time, self.attempts_made)
+
         if time_offline < required_offline_time:
+            remaining = required_offline_time - time_offline
+            _LOGGER.debug("%s IP recovery blocked: Need %.0fs more offline time", self.device_name, remaining)
             return False
-            
+
         # Ensure minimum cooldown between attempts (30 seconds)
         if (current_time - self.last_attempt_time) < 30:
+            cooldown_remaining = 30 - (current_time - self.last_attempt_time)
+            _LOGGER.debug("%s IP recovery blocked: Cooldown remaining %.0fs", self.device_name, cooldown_remaining)
             return False
-            
+
+        _LOGGER.debug("%s IP recovery ALLOWED: All conditions met", self.device_name)
         return True
     
     def start_attempt(self, current_time: float) -> None:
@@ -319,6 +334,15 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         self.cpu_id = config_entry.data.get("cpu_id", "")
         self.mac_address = config_entry.data.get("mac_address", "")
         self.identification_method = config_entry.data.get("identification_method", "fallback")
+
+        # Debug: Log what we extracted
+        _LOGGER.warning("🔍 COORDINATOR INIT: Extracted MAC='%s', CPU_ID='%s', Method='%s'",
+                       self.mac_address, self.cpu_id, self.identification_method)
+
+        # Auto-migration: If MAC address is missing, try to recover it
+        if not self.mac_address and self.cpu_id:
+            _LOGGER.warning("🔧 AUTO-MIGRATION: MAC address missing, attempting recovery via discovery")
+            asyncio.create_task(self._recover_missing_mac_address())
         
         self.device: Optional[MaxSmartDevice] = None
         self._initialized = False
@@ -335,43 +359,71 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         # Error detection task
         self._error_detection_task = None
 
+    async def async_config_entry_first_refresh(self) -> None:
+        """Override first refresh to perform our custom setup."""
+        _LOGGER.info("🚀 COORDINATOR: Starting first refresh for %s", self.device_name)
+        await self._async_setup()
+
+        # Call parent's first refresh only if we're initialized
+        if self._initialized:
+            _LOGGER.info("🚀 COORDINATOR: Device initialized, calling parent first refresh")
+            await super().async_config_entry_first_refresh()
+        else:
+            _LOGGER.warning("🚀 COORDINATOR: Device not initialized, skipping parent first refresh")
+            # Set empty data for offline devices
+            self.async_set_updated_data({})
+
     async def _async_setup(self) -> None:
         """Set up the coordinator - simplified without startup IP recovery."""
         if self._initialized:
             return
-            
+
         try:
-            _LOGGER.debug("Initializing MaxSmart device: %s (%s)", self.device_name, self.device_ip)
-            
+            _LOGGER.info("🔄 MAXSMART SETUP: Starting initialization for %s at IP %s", self.device_name, self.device_ip)
+
+            # Log complete config entry data
+            _LOGGER.warning("📋 CONFIG ENTRY DATA: Complete entry data = %s", dict(self.config_entry.data))
+            _LOGGER.warning("📋 CONFIG ENTRY OPTIONS: Complete entry options = %s", dict(self.config_entry.options))
+
+            _LOGGER.info("🔄 MAXSMART SETUP: Device config - MAC: %s, CPU ID: %s, Method: %s",
+                        self.mac_address or "None", self.cpu_id or "None", self.identification_method)
+
             # Try initial connection at stored IP
+            _LOGGER.info("🔄 MAXSMART SETUP: Testing initial connection to %s", self.device_ip)
             success = await self._try_connect_at_ip(self.device_ip)
-            
+
             if success:
+                _LOGGER.info("✅ MAXSMART SETUP: Initial connection SUCCESS, completing setup")
                 await self._complete_successful_setup()
                 return
-            
+
             # Initial connection failed - device is offline, set up resilient mode
-            _LOGGER.info("Device %s offline at startup, creating resilient setup", self.device_name)
+            _LOGGER.warning("❌ MAXSMART SETUP: Initial connection FAILED, creating resilient setup for %s", self.device_name)
             self._create_resilient_setup()
-            
+
         except Exception as err:
             should_log = self.error_tracker.record_error("setup_error")
             if should_log:
-                _LOGGER.error("Unexpected error initializing %s: %s", self.device_name, err)
+                _LOGGER.error("💥 MAXSMART SETUP: Unexpected error initializing %s: %s", self.device_name, err, exc_info=True)
             raise UpdateFailed(f"Setup failed for {self.device_name}: {err}")
 
     async def _try_connect_at_ip(self, ip_address: str) -> bool:
         """Try to connect to device at specific IP address."""
         try:
+            _LOGGER.info("🔌 CONNECTION TEST: %s - Creating device instance for IP %s", self.device_name, ip_address)
             temp_device = MaxSmartDevice(ip_address)
+
+            _LOGGER.info("🔌 CONNECTION TEST: %s - Calling initialize_device() for %s", self.device_name, ip_address)
             await temp_device.initialize_device()
+
+            _LOGGER.info("🔌 CONNECTION TEST: %s - Closing test connection to %s", self.device_name, ip_address)
             await temp_device.close()
-            
-            _LOGGER.debug("Successfully connected to %s at %s", self.device_name, ip_address)
+
+            _LOGGER.info("✅ CONNECTION TEST: %s - SUCCESS at %s", self.device_name, ip_address)
             return True
-            
+
         except Exception as err:
-            _LOGGER.debug("Connection failed to %s at %s: %s", self.device_name, ip_address, err)
+            _LOGGER.warning("❌ CONNECTION TEST: %s - FAILED at %s: %s - %s", self.device_name, ip_address, type(err).__name__, err)
             return False
 
     async def _attempt_startup_ip_recovery(self) -> Optional[str]:
@@ -421,12 +473,14 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
 
     def _create_resilient_setup(self) -> None:
         """Create resilient setup for offline devices."""
+        _LOGGER.warning("🔄 RESILIENT SETUP: %s - Device offline, starting resilient mode", self.device_name)
         self._initialized = False
-        
+
         # Record setup failure
         self.error_tracker.record_error("setup_failed")
-        
+
         # Start offline retry with conservative IP recovery
+        _LOGGER.info("🔄 RESILIENT SETUP: %s - Starting offline retry loop", self.device_name)
         self._start_offline_retry()
 
     async def _on_poll_data(self, poll_data: Dict[str, Any]) -> None:
@@ -456,52 +510,103 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
 
     def _start_offline_retry(self) -> None:
         """Start periodic retry for offline devices."""
+        _LOGGER.info("🔄 START OFFLINE RETRY: %s - Creating retry task", self.device_name)
         if self._error_detection_task:
             self._error_detection_task.cancel()
-            
+
         self._error_detection_task = asyncio.create_task(self._offline_retry_loop())
+        _LOGGER.info("🔄 START OFFLINE RETRY: %s - Task created successfully", self.device_name)
 
     async def _offline_retry_loop(self) -> None:
         """Conservative retry loop for offline devices with integrated IP recovery."""
+        _LOGGER.warning("🔄 OFFLINE RETRY LOOP: %s - ENTERING retry loop function", self.device_name)
         try:
             retry_interval = 60  # Start with 1 minute
             max_interval = 300   # Max 5 minutes
             offline_start_time = time.time()
-            
+
+            _LOGGER.warning("🔄 OFFLINE RETRY: %s - Starting retry loop (interval=%ds, max=%ds)",
+                           self.device_name, retry_interval, max_interval)
+
             # Set offline start time for IP recovery timeline
             self.ip_recovery.set_device_offline_start(offline_start_time)
-            
+            _LOGGER.info("🔄 OFFLINE RETRY: %s - Set offline start time for IP recovery", self.device_name)
+
+            _LOGGER.warning("🔄 OFFLINE RETRY LOOP: %s - About to enter while loop, initialized=%s",
+                           self.device_name, self._initialized)
+
             while not self._initialized:
+                _LOGGER.warning("🔄 OFFLINE RETRY LOOP: %s - Starting iteration, waiting %ds", self.device_name, retry_interval)
                 await asyncio.sleep(retry_interval)
                 current_time = time.time()
-                
+
+                _LOGGER.warning("🔄 OFFLINE RETRY LOOP: %s - Sleep completed, starting attempt", self.device_name)
+
                 try:
-                    _LOGGER.debug("Attempting to reconnect offline device: %s", self.device_name)
-                    
+                    _LOGGER.info("🔄 OFFLINE RETRY: %s - Attempt #%d (interval=%.1fs, errors=%d)",
+                                 self.device_name, self.error_tracker.consecutive_errors + 1,
+                                 retry_interval, self.error_tracker.consecutive_errors)
+
                     # Try original IP first
+                    _LOGGER.info("🔄 OFFLINE RETRY: %s - Testing connection to original IP %s", self.device_name, self.device_ip)
                     success = await self._try_connect_at_ip(self.device_ip)
-                    
+
                     if success:
+                        _LOGGER.info("✅ OFFLINE RETRY: %s - Original IP connection SUCCESS, completing setup", self.device_name)
                         await self._complete_successful_setup()
                         return
-                    
+                    else:
+                        _LOGGER.warning("❌ OFFLINE RETRY: %s - Original IP connection FAILED", self.device_name)
+
                     # Original IP failed - record error for smart logging
+                    _LOGGER.warning("📊 ERROR TRACKING: %s - Recording connection_refused error", self.device_name)
                     should_log = self.error_tracker.record_error("connection_refused")
-                    
-                    # Check if IP recovery should be attempted
-                    if self.ip_recovery.can_attempt_recovery(current_time):
-                        new_ip = await self._attempt_runtime_ip_recovery(current_time)
-                        if new_ip:
-                            success = await self._try_connect_at_ip(new_ip)
-                            if success:
-                                await self._update_device_ip(new_ip)
-                                await self._complete_successful_setup()
-                                return
-                    
-                    # Both failed - increase retry interval
+                    _LOGGER.warning("📊 ERROR TRACKING: %s - Error recorded, consecutive_errors=%d",
+                                   self.device_name, self.error_tracker.consecutive_errors)
+
+                    # NEW: Check if IP recovery should be attempted based on consecutive failures
+                    _LOGGER.warning("🔍 IP RECOVERY CHECK: %s - Errors=%d, threshold=3, MAC=%s",
+                                 self.device_name, self.error_tracker.consecutive_errors,
+                                 self.mac_address[:8] + "..." if self.mac_address else "None")
+
+                    if self.error_tracker.consecutive_errors >= 3:
+                        _LOGGER.info("✅ IP RECOVERY CHECK: %s - Error threshold met (%d >= 3)",
+                                     self.device_name, self.error_tracker.consecutive_errors)
+
+                        can_recover = self.ip_recovery.can_attempt_recovery(current_time)
+                        _LOGGER.info("🔍 IP RECOVERY CHECK: %s - Can attempt recovery: %s", self.device_name, can_recover)
+
+                        if can_recover:
+                            _LOGGER.warning("🚀 IP RECOVERY: %s - TRIGGERING IP recovery (errors >= 3)", self.device_name)
+                            new_ip = await self._attempt_runtime_ip_recovery(current_time)
+                            if new_ip:
+                                _LOGGER.info("🔍 IP RECOVERY: %s - Testing connection to recovered IP %s", self.device_name, new_ip)
+                                success = await self._try_connect_at_ip(new_ip)
+                                if success:
+                                    _LOGGER.info("✅ IP RECOVERY: %s - Recovered IP connection SUCCESS, updating config", self.device_name)
+                                    await self._update_device_ip(new_ip)
+                                    await self._complete_successful_setup()
+                                    return
+                                else:
+                                    _LOGGER.warning("❌ IP RECOVERY: %s - Recovered IP connection FAILED", self.device_name)
+                            else:
+                                _LOGGER.warning("❌ IP RECOVERY: %s - No new IP found", self.device_name)
+                        else:
+                            recovery_status = self.ip_recovery.get_status()
+                            _LOGGER.info("⏳ IP RECOVERY: %s - Not ready yet - %s", self.device_name, recovery_status)
+                    else:
+                        _LOGGER.info("⏳ IP RECOVERY CHECK: %s - Need %d more errors (current: %d)",
+                                     self.device_name, 3 - self.error_tracker.consecutive_errors,
+                                     self.error_tracker.consecutive_errors)
+
+                    # Both failed - increase retry interval (normal retry logic continues)
+                    old_interval = retry_interval
                     retry_interval = min(retry_interval * 1.5, max_interval)
-                    
-                except Exception:
+                    _LOGGER.debug("%s Offline retry: Increasing retry interval %.1fs -> %.1fs",
+                                 self.device_name, old_interval, retry_interval)
+
+                except Exception as e:
+                    _LOGGER.error("💥 OFFLINE RETRY EXCEPTION: %s - Exception during retry: %s", self.device_name, e, exc_info=True)
                     retry_interval = min(retry_interval * 1.5, max_interval)
                     continue
                     
@@ -519,63 +624,103 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
     async def _conservative_error_detection_loop(self) -> None:
         """Conservative error detection loop with integrated IP recovery timeline."""
         try:
+            _LOGGER.debug("%s Error detection: Starting conservative error detection loop", self.device_name)
             while self._initialized:
                 await asyncio.sleep(120)  # Check every 2 minutes
                 current_time = time.time()
-                
+
+                # Get current status for debugging
+                is_offline = self.error_tracker.is_device_considered_offline()
+                consecutive_errors = self.error_tracker.consecutive_errors
+                time_since_last_poll = current_time - self.error_tracker.last_successful_poll
+
+                _LOGGER.debug("%s Error detection: Check - offline=%s, errors=%d, time_since_poll=%.0fs",
+                             self.device_name, is_offline, consecutive_errors, time_since_last_poll)
+
                 # Check if device is considered offline
-                if self.error_tracker.is_device_considered_offline():
-                    
+                if is_offline:
+                    _LOGGER.debug("%s Error detection: Device considered OFFLINE, processing...", self.device_name)
+
                     # Set offline start time for IP recovery timeline
                     if self.error_tracker.first_error_time:
                         self.ip_recovery.set_device_offline_start(self.error_tracker.first_error_time)
-                    
+                        _LOGGER.debug("%s Error detection: Set offline start time to %s",
+                                     self.device_name, self.error_tracker.first_error_time)
+
                     # Record error for smart logging
                     should_log = self.error_tracker.record_error("polling_timeout")
-                    
+
                     if should_log:
                         time_offline = current_time - self.error_tracker.last_successful_poll
-                        _LOGGER.warning("%s has been offline for %.0f seconds", 
+                        _LOGGER.warning("%s has been offline for %.0f seconds",
                                       self.device_name, time_offline)
-                    
+
                     # Check if IP recovery attempt should be made
-                    if self.ip_recovery.can_attempt_recovery(current_time):
+                    can_recover = self.ip_recovery.can_attempt_recovery(current_time)
+                    _LOGGER.debug("%s Error detection: IP recovery check result: %s", self.device_name, can_recover)
+
+                    if can_recover:
+                        _LOGGER.info("%s Error detection: TRIGGERING IP recovery attempt", self.device_name)
                         await self._attempt_runtime_ip_recovery(current_time)
-                        
+                    else:
+                        recovery_status = self.ip_recovery.get_status()
+                        _LOGGER.debug("%s Error detection: IP recovery not ready - %s", self.device_name, recovery_status)
+                else:
+                    _LOGGER.debug("%s Error detection: Device status OK", self.device_name)
+
         except asyncio.CancelledError:
+            _LOGGER.debug("%s Error detection: Loop cancelled", self.device_name)
             pass
         except Exception as err:
-            _LOGGER.error("Conservative error detection loop failed for %s: %s", self.device_name, err)
+            _LOGGER.error("Conservative error detection loop failed for %s: %s", self.device_name, err, exc_info=True)
 
     async def _attempt_runtime_ip_recovery(self, current_time: float) -> Optional[str]:
         """Attempt conservative IP recovery during runtime with final exhaustion handling."""
+        _LOGGER.info("%s STARTING IP RECOVERY ATTEMPT - Current IP: %s, MAC: %s",
+                    self.device_name, self.device_ip, self.mac_address)
+
         self.ip_recovery.start_attempt(current_time)
-        
+
         try:
+            _LOGGER.debug("%s IP recovery: Beginning device IP lookup process", self.device_name)
             new_ip = await self._recover_device_ip()
+
             if new_ip and new_ip != self.device_ip:
-                _LOGGER.info("%s IP recovery found new address: %s -> %s", 
+                _LOGGER.info("%s IP recovery SUCCESS: Found new address %s -> %s",
                            self.device_name, self.device_ip, new_ip)
-                await self._restart_polling_with_new_ip(new_ip)
-                return new_ip
+
+                # Test connection to new IP before switching
+                _LOGGER.debug("%s IP recovery: Testing connection to new IP %s", self.device_name, new_ip)
+                connection_test = await self._try_connect_at_ip(new_ip)
+
+                if connection_test:
+                    _LOGGER.info("%s IP recovery: Connection test to %s PASSED, switching", self.device_name, new_ip)
+                    await self._restart_polling_with_new_ip(new_ip)
+                    return new_ip
+                else:
+                    _LOGGER.warning("%s IP recovery: Connection test to %s FAILED, not switching", self.device_name, new_ip)
+                    return None
             else:
-                _LOGGER.debug("%s IP recovery attempt found no new IP", self.device_name)
-                
+                if new_ip == self.device_ip:
+                    _LOGGER.debug("%s IP recovery: Found same IP %s, no change needed", self.device_name, new_ip)
+                else:
+                    _LOGGER.debug("%s IP recovery: No new IP found", self.device_name)
+
                 # Check if this was the final attempt
                 if self.ip_recovery.attempts_made >= self.ip_recovery.max_attempts:
-                    _LOGGER.warning("%s IP recovery failed %d/%d - device requires manual intervention", 
+                    _LOGGER.warning("%s IP recovery EXHAUSTED %d/%d - device requires manual intervention",
                                   self.device_name, self.ip_recovery.attempts_made, self.ip_recovery.max_attempts)
-                
+
                 return None
-                
+
         except Exception as err:
-            _LOGGER.debug("%s IP recovery attempt failed: %s", self.device_name, err)
-            
+            _LOGGER.error("%s IP recovery attempt FAILED with exception: %s", self.device_name, err, exc_info=True)
+
             # Check if this was the final attempt
             if self.ip_recovery.attempts_made >= self.ip_recovery.max_attempts:
-                _LOGGER.warning("%s IP recovery failed %d/%d - device requires manual intervention", 
+                _LOGGER.warning("%s IP recovery EXHAUSTED %d/%d after exception - device requires manual intervention",
                               self.device_name, self.ip_recovery.attempts_made, self.ip_recovery.max_attempts)
-            
+
             return None
     async def _restart_polling_with_new_ip(self, new_ip: str) -> None:
         """Restart intelligent polling with new IP address."""
@@ -635,62 +780,98 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
     async def _recover_device_ip(self) -> Optional[str]:
         """Attempt to recover device IP using MAC address lookup."""
         if not self.mac_address:
+            _LOGGER.debug("%s IP recovery BLOCKED: No MAC address available", self.device_name)
             return None
-            
-        _LOGGER.debug("Starting IP recovery for %s with MAC %s", self.device_name, self.mac_address)
-        
+
+        _LOGGER.info("%s IP recovery: Starting 3-method approach with MAC %s", self.device_name, self.mac_address)
+
         # Method 1: ARP table lookup
+        _LOGGER.debug("%s IP recovery: METHOD 1 - ARP table lookup", self.device_name)
         new_ip = await self._get_ip_from_arp_table(self.mac_address)
         if new_ip:
+            _LOGGER.info("%s IP recovery: METHOD 1 SUCCESS - Found IP %s in ARP table", self.device_name, new_ip)
             return new_ip
-            
+        else:
+            _LOGGER.debug("%s IP recovery: METHOD 1 FAILED - No IP found in ARP table", self.device_name)
+
         # Method 2: Ping subnet + ARP retry
+        _LOGGER.debug("%s IP recovery: METHOD 2 - Ping subnet then retry ARP", self.device_name)
         await self._ping_subnet_to_populate_arp()
         new_ip = await self._get_ip_from_arp_table(self.mac_address)
         if new_ip:
+            _LOGGER.info("%s IP recovery: METHOD 2 SUCCESS - Found IP %s after subnet ping", self.device_name, new_ip)
             return new_ip
-            
+        else:
+            _LOGGER.debug("%s IP recovery: METHOD 2 FAILED - No IP found after subnet ping", self.device_name)
+
         # Method 3: Discovery fallback
+        _LOGGER.debug("%s IP recovery: METHOD 3 - Discovery fallback", self.device_name)
         new_ip = await self._find_device_via_discovery()
         if new_ip:
+            _LOGGER.info("%s IP recovery: METHOD 3 SUCCESS - Found IP %s via discovery", self.device_name, new_ip)
             return new_ip
-            
+        else:
+            _LOGGER.debug("%s IP recovery: METHOD 3 FAILED - No IP found via discovery", self.device_name)
+
+        _LOGGER.warning("%s IP recovery: ALL METHODS FAILED - No new IP found", self.device_name)
         return None
 
     async def _get_ip_from_arp_table(self, mac_address: str) -> Optional[str]:
         """Get IP address from system ARP table by MAC address."""
         try:
-            if platform.system().lower() == "windows":
+            system = platform.system().lower()
+            if system == "windows":
                 cmd = ["arp", "-a"]
             else:
                 cmd = ["arp", "-a"]
-                
+
+            _LOGGER.debug("%s ARP lookup: Running command %s on %s", self.device_name, cmd, system)
+
             result = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
             stdout, stderr = await result.communicate()
-            
+
             if result.returncode != 0:
+                _LOGGER.debug("%s ARP lookup: Command failed with return code %d", self.device_name, result.returncode)
+                if stderr:
+                    _LOGGER.debug("%s ARP lookup: Error output: %s", self.device_name, stderr.decode().strip())
                 return None
-                
+
             arp_output = stdout.decode()
+            _LOGGER.debug("%s ARP lookup: Got %d lines of output", self.device_name, len(arp_output.split('\n')))
+
             mac_clean = mac_address.lower().replace(':', '-')
             mac_colon = mac_address.lower().replace('-', ':')
-            
+            _LOGGER.debug("%s ARP lookup: Searching for MAC formats: %s or %s", self.device_name, mac_clean, mac_colon)
+
+            matches_found = 0
             for line in arp_output.split('\n'):
                 line_lower = line.lower()
                 if mac_clean in line_lower or mac_colon in line_lower:
+                    matches_found += 1
+                    _LOGGER.debug("%s ARP lookup: Found MAC match in line: %s", self.device_name, line.strip())
                     ip_match = re.search(r'(\d+\.\d+\.\d+\.\d+)', line)
                     if ip_match:
                         found_ip = ip_match.group(1)
+                        _LOGGER.debug("%s ARP lookup: Extracted IP %s from line", self.device_name, found_ip)
                         if found_ip != self.device_ip:
+                            _LOGGER.info("%s ARP lookup: Found NEW IP %s (current: %s)",
+                                       self.device_name, found_ip, self.device_ip)
                             return found_ip
-                            
+                        else:
+                            _LOGGER.debug("%s ARP lookup: Found SAME IP %s, continuing search", self.device_name, found_ip)
+
+            if matches_found == 0:
+                _LOGGER.debug("%s ARP lookup: No MAC matches found in ARP table", self.device_name)
+            else:
+                _LOGGER.debug("%s ARP lookup: Found %d MAC matches but no new IPs", self.device_name, matches_found)
+
         except Exception as e:
-            _LOGGER.debug("Error reading ARP table: %s", e)
-            
+            _LOGGER.warning("%s ARP lookup: Exception occurred: %s", self.device_name, e, exc_info=True)
+
         return None
 
     async def _ping_subnet_to_populate_arp(self) -> None:
@@ -698,43 +879,142 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         try:
             subnet_base = '.'.join(self.device_ip.split('.')[:-1])
             broadcast_ip = f"{subnet_base}.255"
-            
-            if platform.system().lower() == "windows":
+
+            system = platform.system().lower()
+            if system == "windows":
                 cmd = ["ping", "-n", "1", "-w", "1000", broadcast_ip]
             else:
                 cmd = ["ping", "-c", "1", "-W", "1", broadcast_ip]
-                
-            await asyncio.create_subprocess_exec(
+
+            _LOGGER.debug("%s Subnet ping: Pinging %s with command %s on %s",
+                         self.device_name, broadcast_ip, cmd, system)
+
+            process = await asyncio.create_subprocess_exec(
                 *cmd,
-                stdout=asyncio.subprocess.DEVNULL,
-                stderr=asyncio.subprocess.DEVNULL
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
             )
-            
+
+            stdout, stderr = await process.communicate()
+
+            _LOGGER.debug("%s Subnet ping: Command completed with return code %d",
+                         self.device_name, process.returncode)
+
+            if process.returncode == 0:
+                _LOGGER.debug("%s Subnet ping: Broadcast ping successful", self.device_name)
+            else:
+                _LOGGER.debug("%s Subnet ping: Broadcast ping failed (this is often normal)", self.device_name)
+
+            # Wait for ARP table to populate
+            _LOGGER.debug("%s Subnet ping: Waiting 0.5s for ARP table population", self.device_name)
             await asyncio.sleep(0.5)
-            
+
         except Exception as e:
-            _LOGGER.debug("Error pinging subnet: %s", e)
+            _LOGGER.warning("%s Subnet ping: Exception occurred: %s", self.device_name, e, exc_info=True)
 
     async def _find_device_via_discovery(self) -> Optional[str]:
         """Find device via discovery using MAC matching."""
         try:
+            _LOGGER.debug("%s Discovery: Starting MaxSmart discovery with hardware enhancement", self.device_name)
             devices = await MaxSmartDiscovery.discover_maxsmart(enhance_with_hardware_ids=True)
-            
-            for device in devices:
+
+            _LOGGER.debug("%s Discovery: Found %d devices", self.device_name, len(devices))
+
+            # Primary: MAC address matching
+            target_mac_normalized = self._normalize_mac(self.mac_address)
+            _LOGGER.debug("%s Discovery: Looking for MAC %s (normalized: %s)",
+                         self.device_name, self.mac_address, target_mac_normalized)
+
+            for i, device in enumerate(devices):
                 device_mac = device.get("mac_address") or device.get("pclmac", "")
-                if device_mac and self._normalize_mac(device_mac) == self._normalize_mac(self.mac_address):
-                    return device.get("ip")
-                    
+                device_ip = device.get("ip", "unknown")
+
+                _LOGGER.debug("%s Discovery: Device %d - IP: %s, MAC: %s",
+                             self.device_name, i+1, device_ip, device_mac)
+
+                if device_mac:
+                    device_mac_normalized = self._normalize_mac(device_mac)
+                    if device_mac_normalized == target_mac_normalized:
+                        _LOGGER.info("%s Discovery: MAC MATCH found - IP %s, MAC %s",
+                                   self.device_name, device_ip, device_mac)
+                        return device_ip
+                    else:
+                        _LOGGER.debug("%s Discovery: MAC mismatch - got %s, want %s",
+                                     self.device_name, device_mac_normalized, target_mac_normalized)
+
             # Fallback: CPU ID match
             if self.cpu_id:
-                for device in devices:
-                    if device.get("cpuid") == self.cpu_id:
-                        return device.get("ip")
-                        
+                _LOGGER.debug("%s Discovery: No MAC match, trying CPU ID fallback: %s",
+                             self.device_name, self.cpu_id)
+                for i, device in enumerate(devices):
+                    device_cpu_id = device.get("cpuid", "")
+                    device_ip = device.get("ip", "unknown")
+
+                    _LOGGER.debug("%s Discovery: Device %d CPU ID check - IP: %s, CPU ID: %s",
+                                 self.device_name, i+1, device_ip, device_cpu_id)
+
+                    if device_cpu_id == self.cpu_id:
+                        _LOGGER.info("%s Discovery: CPU ID MATCH found - IP %s, CPU ID %s",
+                                   self.device_name, device_ip, device_cpu_id)
+                        return device_ip
+            else:
+                _LOGGER.debug("%s Discovery: No CPU ID available for fallback", self.device_name)
+
+            _LOGGER.debug("%s Discovery: No matching device found", self.device_name)
+
         except Exception as e:
-            _LOGGER.debug("Discovery fallback failed: %s", e)
-            
+            _LOGGER.warning("%s Discovery: Exception occurred: %s", self.device_name, e, exc_info=True)
+
         return None
+
+    async def _recover_missing_mac_address(self) -> None:
+        """Auto-migration: Recover missing MAC address via discovery."""
+        try:
+            await asyncio.sleep(5)  # Wait a bit for system to stabilize
+
+            _LOGGER.info("🔧 MAC RECOVERY: Starting discovery to find MAC for CPU ID %s", self.cpu_id)
+
+            from .discovery import MaxSmartDiscovery
+            devices = await MaxSmartDiscovery.discover_maxsmart(enhance_with_hardware_ids=True)
+
+            _LOGGER.info("🔧 MAC RECOVERY: Found %d devices in discovery", len(devices))
+
+            # DEBUG: Log all devices found
+            for i, device in enumerate(devices):
+                _LOGGER.debug("🔧 MAC RECOVERY: Device %d = %s", i+1, device)
+
+            for device in devices:
+                device_cpu_id = device.get("cpuid", "")
+                device_mac = device.get("mac", "")
+                device_ip = device.get("ip", "")
+
+                _LOGGER.debug("🔧 MAC RECOVERY: Checking device - IP: %s, CPU: %s, MAC: %s",
+                             device_ip, device_cpu_id, device_mac)
+                _LOGGER.debug("🔧 MAC RECOVERY: Target CPU ID: %s", self.cpu_id)
+
+                if device_cpu_id == self.cpu_id and device_mac:
+                    _LOGGER.warning("🔧 MAC RECOVERY: FOUND MAC %s for CPU ID %s", device_mac, self.cpu_id)
+
+                    # Update coordinator
+                    self.mac_address = device_mac
+                    self.ip_recovery.mac_address = device_mac
+
+                    # Update config entry
+                    new_data = dict(self.config_entry.data)
+                    new_data["mac_address"] = device_mac
+
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry,
+                        data=new_data
+                    )
+
+                    _LOGGER.info("✅ MAC RECOVERY: Successfully updated MAC address to %s", device_mac)
+                    return
+
+            _LOGGER.warning("❌ MAC RECOVERY: No matching device found with CPU ID %s", self.cpu_id)
+
+        except Exception as e:
+            _LOGGER.error("💥 MAC RECOVERY: Failed to recover MAC address: %s", e, exc_info=True)
 
     def _normalize_mac(self, mac: str) -> str:
         """Normalize MAC address for comparison."""

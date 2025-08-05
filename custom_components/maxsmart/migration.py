@@ -105,11 +105,11 @@ class MaxSmartMigrationManager:
             
             if entry_mac:
                 for device in current_devices:
-                    # Check both mac_address and pclmac fields
-                    device_mac = device.get("mac_address") or device.get("pclmac")
-                    
+                    # Check both mac and pclmac fields (fixed: use "mac" from discovery)
+                    device_mac = device.get("mac") or device.get("pclmac")
+
                     if device_mac and self._normalize_mac(entry_mac) == self._normalize_mac(device_mac):
-                        _LOGGER.info("Found MAC match: %s (%s -> %s)", 
+                        _LOGGER.info("Found MAC match: %s (%s -> %s)",
                                    entry_mac, entry_ip, device.get("ip"))
                         return device
                         
@@ -245,6 +245,17 @@ class MaxSmartMigrationManager:
                 result["status"] = "already_migrated"
                 _LOGGER.debug("Entry %s already migrated", entry.title)
                 return result
+
+            # Log migration scenario for debugging
+            has_cpu_id = bool(entry.data.get("cpu_id"))
+            has_mac_address = bool(entry.data.get("mac_address"))
+
+            if has_cpu_id and not has_mac_address:
+                _LOGGER.info("Migration scenario: 2025.7.1 → 2025.8.1 (fixing empty MAC address)")
+            elif not has_cpu_id and not has_mac_address:
+                _LOGGER.info("Migration scenario: Legacy → 2025.8.1 (full migration)")
+            else:
+                _LOGGER.info("Migration scenario: Partial → 2025.8.1 (enrichment)")
                 
             # Detect legacy format
             if not self._is_legacy_entry(entry):
@@ -316,31 +327,36 @@ class MaxSmartMigrationManager:
             # Preserve existing configuration
             "device_name": old_data.get("device_name", device.get("name", "MaxSmart Device")),
             "device_ip": device["ip"],  # Use current IP (may have changed)
-            
+
             # 🔑 KEEP original unique_id to prevent device duplication
             "device_unique_id": original_unique_id,
-            
+
             # Add enhanced identification as metadata
             "best_unique_id": best_unique_id,
             "identification_method": identification_method,
-            
+
             # Hardware identifiers (enrichment)
             "cpu_id": device.get("cpuid", ""),
-            "mac_address": device.get("mac_address", ""),
+            "mac_address": device.get("mac", ""),  # Fixed: use "mac" key from discovery
             "udp_serial": device.get("sn", ""),
             "pclmac": device.get("pclmac", ""),
-            
+
             # Device info
             "sw_version": device.get("ver", "Unknown"),
             "firmware_version": device.get("ver", "Unknown"),
             "port_count": self._determine_port_count(device, old_data),
-            
+
             # Migration metadata
             "migrated_from_version": "1.0",
             "migration_timestamp": datetime.datetime.utcnow().isoformat(),
             "original_unique_id": original_unique_id,
             "hardware_enhanced": True,
         }
+
+        # DEBUG: Log what we extracted from device
+        _LOGGER.debug("🔧 MIGRATION BUILD: Device data = %s", device)
+        _LOGGER.debug("🔧 MIGRATION BUILD: Extracted MAC = '%s' from device.get('mac')", device.get("mac", ""))
+        _LOGGER.debug("🔧 MIGRATION BUILD: Enhanced data MAC = '%s'", enhanced_data.get("mac_address", ""))
         
         # Preserve port names from old configuration
         self._preserve_port_names(old_data, enhanced_data, device)
@@ -411,8 +427,8 @@ class MaxSmartMigrationManager:
         """Generate new unique ID using priority system (for reference only)."""
         if device.get("cpuid"):
             return f"cpu_{device['cpuid']}"
-        elif device.get("mac_address"):
-            mac_clean = self._normalize_mac(device["mac_address"])
+        elif device.get("mac"):  # Fixed: use "mac" key from discovery
+            mac_clean = self._normalize_mac(device["mac"])
             return f"mac_{mac_clean}"
         elif device.get("sn"):
             return f"sn_{device['sn']}"
@@ -424,7 +440,7 @@ class MaxSmartMigrationManager:
         """Determine which identification method was used."""
         if device.get("cpuid"):
             return "cpu_id"
-        elif device.get("mac_address"):
+        elif device.get("mac"):  # Fixed: use "mac" key from discovery
             return "mac_address"
         elif device.get("sn"):
             return "udp_serial"
@@ -434,12 +450,19 @@ class MaxSmartMigrationManager:
     def _is_already_migrated(self, entry: ConfigEntry) -> bool:
         """Check if config entry is already in enhanced format."""
         data = entry.data
-        
+
         # Enhanced format has hardware fields OR migration flag
-        has_hardware_fields = any(field in data for field in ["cpu_id", "mac_address", "hardware_enhanced"])
+        # BUT: if mac_address is empty, we need to re-migrate to fix it
+        has_cpu_id = bool(data.get("cpu_id"))
+        has_mac_address = bool(data.get("mac_address"))  # Empty string = False
+        has_migration_flag = bool(data.get("hardware_enhanced"))
         has_enhanced_fields = "identification_method" in data
-        
-        return has_hardware_fields or has_enhanced_fields
+
+        # Consider migrated only if we have BOTH cpu_id AND mac_address (non-empty)
+        # OR if we have the migration flag
+        fully_migrated = (has_cpu_id and has_mac_address) or has_migration_flag or has_enhanced_fields
+
+        return fully_migrated
         
     def _is_legacy_entry(self, entry: ConfigEntry) -> bool:
         """Check if config entry is in legacy format."""
@@ -460,9 +483,16 @@ class MaxSmartMigrationManager:
     async def _discover_current_devices(self) -> List[Dict[str, Any]]:
         """Discover current devices with enhanced identification."""
         try:
-            _LOGGER.debug("Discovering current devices for migration mapping")
+            _LOGGER.warning("🔍 MIGRATION DISCOVERY: Starting device discovery for migration")
             devices = await MaxSmartDiscovery.discover_maxsmart(enhance_with_hardware_ids=True)
-            _LOGGER.debug("Found %d devices for migration mapping", len(devices))
+            _LOGGER.warning("🔍 MIGRATION DISCOVERY: Found %d devices", len(devices))
+
+            # DEBUG: Log all discovered devices
+            for i, device in enumerate(devices):
+                _LOGGER.debug("🔍 MIGRATION DISCOVERY: Device %d = %s", i+1, device)
+                _LOGGER.debug("🔍 MIGRATION DISCOVERY: Device %d - IP: %s, CPU: %s, MAC: %s",
+                             i+1, device.get("ip"), device.get("cpuid"), device.get("mac"))
+
             return devices or []
         except Exception as err:
             _LOGGER.warning("Failed to discover devices for migration: %s", err)
@@ -489,7 +519,7 @@ class MaxSmartMigrationManager:
                 "pname": getattr(temp_device, 'port_names', []),
                 "cpuid": hw_ids.get("cpuid", ""),
                 "pclmac": hw_ids.get("pclmac", ""),
-                "mac_address": mac_address or hw_ids.get("pclmac", ""),
+                "mac": mac_address or hw_ids.get("pclmac", ""),  # Fixed: use "mac" key like discovery
                 "hw_ids": hw_ids,
             }
             
