@@ -27,9 +27,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Check for and perform migration ONLY ONCE for all entries
     if not hass.data.get(DOMAIN, {}).get('_migration_checked', False):
         try:
-            _LOGGER.warning("🔄 MIGRATION: Performing one-time MaxSmart migration check")
+            _LOGGER.debug("🔄 MIGRATION: Performing one-time MaxSmart migration check")
             migration_summary = await async_migrate_config_entries(hass)
-            _LOGGER.warning("🔄 MIGRATION: Migration completed with summary: %s", migration_summary)
+            _LOGGER.debug("🔄 MIGRATION: Migration completed with summary: %s", migration_summary)
             
             # Mark migration as completed and store summary
             hass.data.setdefault(DOMAIN, {})

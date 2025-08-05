@@ -336,12 +336,12 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         self.identification_method = config_entry.data.get("identification_method", "fallback")
 
         # Debug: Log what we extracted
-        _LOGGER.warning("🔍 COORDINATOR INIT: Extracted MAC='%s', CPU_ID='%s', Method='%s'",
+        _LOGGER.debug("🔍 COORDINATOR INIT: Extracted MAC='%s', CPU_ID='%s', Method='%s'",
                        self.mac_address, self.cpu_id, self.identification_method)
 
         # Auto-migration: If MAC address is missing, try to recover it
         if not self.mac_address and self.cpu_id:
-            _LOGGER.warning("🔧 AUTO-MIGRATION: MAC address missing, attempting recovery via discovery")
+            _LOGGER.debug("🔧 AUTO-MIGRATION: MAC address missing, attempting recovery via discovery")
             asyncio.create_task(self._recover_missing_mac_address())
         
         self.device: Optional[MaxSmartDevice] = None
@@ -968,32 +968,25 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         return None
 
     async def _recover_missing_mac_address(self) -> None:
-        """Auto-migration: Recover missing MAC address via discovery."""
+        """Auto-migration: Recover missing MAC address via direct IP discovery."""
         try:
-            await asyncio.sleep(5)  # Wait a bit for system to stabilize
+            await asyncio.sleep(2)  # Brief wait
 
-            _LOGGER.info("🔧 MAC RECOVERY: Starting discovery to find MAC for CPU ID %s", self.cpu_id)
+            _LOGGER.debug("🔧 MAC RECOVERY: Starting DIRECT discovery at IP %s", self.device_ip)
 
-            from .discovery import MaxSmartDiscovery
-            devices = await MaxSmartDiscovery.discover_maxsmart(enhance_with_hardware_ids=True)
+            from .discovery import async_discover_device_by_ip
+            device = await async_discover_device_by_ip(self.device_ip, enhance_with_hardware=True)
 
-            _LOGGER.info("🔧 MAC RECOVERY: Found %d devices in discovery", len(devices))
+            if device:
+                _LOGGER.debug("🔧 MAC RECOVERY: DIRECT discovery result = %s", device)
 
-            # DEBUG: Log all devices found
-            for i, device in enumerate(devices):
-                _LOGGER.debug("🔧 MAC RECOVERY: Device %d = %s", i+1, device)
-
-            for device in devices:
-                device_cpu_id = device.get("cpuid", "")
                 device_mac = device.get("mac", "")
-                device_ip = device.get("ip", "")
+                device_cpu_id = device.get("cpuid", "")
 
-                _LOGGER.debug("🔧 MAC RECOVERY: Checking device - IP: %s, CPU: %s, MAC: %s",
-                             device_ip, device_cpu_id, device_mac)
-                _LOGGER.debug("🔧 MAC RECOVERY: Target CPU ID: %s", self.cpu_id)
+                _LOGGER.debug("🔧 MAC RECOVERY: Extracted - MAC: '%s', CPU: '%s'", device_mac, device_cpu_id)
 
-                if device_cpu_id == self.cpu_id and device_mac:
-                    _LOGGER.warning("🔧 MAC RECOVERY: FOUND MAC %s for CPU ID %s", device_mac, self.cpu_id)
+                if device_mac:
+                    _LOGGER.warning("🔧 MAC RECOVERY: FOUND MAC %s at IP %s", device_mac, self.device_ip)
 
                     # Update coordinator
                     self.mac_address = device_mac
@@ -1010,8 +1003,10 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
 
                     _LOGGER.info("✅ MAC RECOVERY: Successfully updated MAC address to %s", device_mac)
                     return
-
-            _LOGGER.warning("❌ MAC RECOVERY: No matching device found with CPU ID %s", self.cpu_id)
+                else:
+                    _LOGGER.warning("❌ MAC RECOVERY: Device found but MAC is empty!")
+            else:
+                _LOGGER.warning("❌ MAC RECOVERY: No device found at IP %s", self.device_ip)
 
         except Exception as e:
             _LOGGER.error("💥 MAC RECOVERY: Failed to recover MAC address: %s", e, exc_info=True)

@@ -249,13 +249,14 @@ class MaxSmartMigrationManager:
             # Log migration scenario for debugging
             has_cpu_id = bool(entry.data.get("cpu_id"))
             has_mac_address = bool(entry.data.get("mac_address"))
+            migration_version = entry.data.get("migration", "")
 
-            if has_cpu_id and not has_mac_address:
+            if migration_version == "2025.7.1":
                 _LOGGER.info("Migration scenario: 2025.7.1 → 2025.8.1 (fixing empty MAC address)")
-            elif not has_cpu_id and not has_mac_address:
+            elif not migration_version:
                 _LOGGER.info("Migration scenario: Legacy → 2025.8.1 (full migration)")
             else:
-                _LOGGER.info("Migration scenario: Partial → 2025.8.1 (enrichment)")
+                _LOGGER.info("Migration scenario: %s → 2025.8.1 (upgrade)", migration_version)
                 
             # Detect legacy format
             if not self._is_legacy_entry(entry):
@@ -347,7 +348,7 @@ class MaxSmartMigrationManager:
             "port_count": self._determine_port_count(device, old_data),
 
             # Migration metadata
-            "migrated_from_version": "1.0",
+            "migration": "2025.8.1",  # Clear migration version
             "migration_timestamp": datetime.datetime.utcnow().isoformat(),
             "original_unique_id": original_unique_id,
             "hardware_enhanced": True,
@@ -448,21 +449,18 @@ class MaxSmartMigrationManager:
             return "ip_fallback"
 
     def _is_already_migrated(self, entry: ConfigEntry) -> bool:
-        """Check if config entry is already in enhanced format."""
+        """Check if config entry is already migrated to 2025.8.1."""
         data = entry.data
 
-        # Enhanced format has hardware fields OR migration flag
-        # BUT: if mac_address is empty, we need to re-migrate to fix it
-        has_cpu_id = bool(data.get("cpu_id"))
-        has_mac_address = bool(data.get("mac_address"))  # Empty string = False
-        has_migration_flag = bool(data.get("hardware_enhanced"))
-        has_enhanced_fields = "identification_method" in data
+        # Check migration version - simple and explicit
+        migration_version = data.get("migration", "")
 
-        # Consider migrated only if we have BOTH cpu_id AND mac_address (non-empty)
-        # OR if we have the migration flag
-        fully_migrated = (has_cpu_id and has_mac_address) or has_migration_flag or has_enhanced_fields
+        if migration_version == "2025.8.1":
+            _LOGGER.debug("Entry already migrated to 2025.8.1")
+            return True
 
-        return fully_migrated
+        _LOGGER.debug("Entry needs migration to 2025.8.1 (current: %s)", migration_version or "none")
+        return False
         
     def _is_legacy_entry(self, entry: ConfigEntry) -> bool:
         """Check if config entry is in legacy format."""
@@ -483,9 +481,9 @@ class MaxSmartMigrationManager:
     async def _discover_current_devices(self) -> List[Dict[str, Any]]:
         """Discover current devices with enhanced identification."""
         try:
-            _LOGGER.warning("🔍 MIGRATION DISCOVERY: Starting device discovery for migration")
+            _LOGGER.debug("🔍 MIGRATION DISCOVERY: Starting device discovery for migration")
             devices = await MaxSmartDiscovery.discover_maxsmart(enhance_with_hardware_ids=True)
-            _LOGGER.warning("🔍 MIGRATION DISCOVERY: Found %d devices", len(devices))
+            _LOGGER.debug("🔍 MIGRATION DISCOVERY: Found %d devices", len(devices))
 
             # DEBUG: Log all discovered devices
             for i, device in enumerate(devices):
