@@ -105,24 +105,30 @@ class NetworkCascadeDetector:
         self._cascade_logged = False
 
 class ConservativeIPRecovery:
-    """Conservative IP recovery with limited attempts and proper cooldowns."""
+    """Conservative IP recovery with escalating timeline: 10min, 30min, 60min, abandon."""
     
     def __init__(self, device_name: str, mac_address: str):
-        """Initialize conservative IP recovery."""
+        """Initialize conservative IP recovery with escalating timeline."""
         self.device_name = device_name
         self.mac_address = mac_address
         
-        # Conservative limits
-        self.max_attempts = 5  # Max attempts per HA session
-        self.cooldown_seconds = 3600  # 1 hour between attempts
+        # Escalating timeline: after 3 retries fail, then 10min, 30min, 60min, abandon
+        self.max_attempts = 4  # 4 IP recovery attempts total
+        self.escalation_timeline = [0, 600, 1800, 3600]  # 0, 10min, 30min, 60min in seconds
         
         # State tracking
         self.attempts_made = 0
         self.last_attempt_time = 0
         self.exhausted = False
+        self.device_offline_start = None  # Track when device went offline
         
-    def can_attempt_recovery(self) -> bool:
-        """Check if IP recovery can be attempted."""
+    def set_device_offline_start(self, offline_time: float) -> None:
+        """Set when the device first went offline (for timeline calculation)."""
+        if self.device_offline_start is None:
+            self.device_offline_start = offline_time
+            
+    def can_attempt_recovery(self, current_time: float) -> bool:
+        """Check if IP recovery can be attempted based on escalating timeline."""
         if not self.mac_address:
             return False
             
@@ -131,23 +137,34 @@ class ConservativeIPRecovery:
             
         if self.attempts_made >= self.max_attempts:
             self.exhausted = True
-            _LOGGER.info("%s IP recovery exhausted (%d attempts), will retry after HA restart", 
-                        self.device_name, self.max_attempts)
+            _LOGGER.info("%s IP recovery exhausted (%d/%d attempts), device requires manual intervention", 
+                        self.device_name, self.attempts_made, self.max_attempts)
+            return False
+        
+        # Check if device has been offline long enough for next attempt
+        if self.device_offline_start is None:
             return False
             
-        current_time = time.time()
-        if (current_time - self.last_attempt_time) < self.cooldown_seconds:
+        time_offline = current_time - self.device_offline_start
+        required_offline_time = self.escalation_timeline[self.attempts_made]
+        
+        if time_offline < required_offline_time:
+            return False
+            
+        # Ensure minimum cooldown between attempts (30 seconds)
+        if (current_time - self.last_attempt_time) < 30:
             return False
             
         return True
     
-    def start_attempt(self) -> None:
+    def start_attempt(self, current_time: float) -> None:
         """Record the start of an IP recovery attempt."""
         self.attempts_made += 1
-        self.last_attempt_time = time.time()
+        self.last_attempt_time = current_time
         
-        _LOGGER.info("%s starting IP recovery attempt %d/%d", 
-                    self.device_name, self.attempts_made, self.max_attempts)
+        timeline_name = ["immediate", "10min", "30min", "60min"][self.attempts_made - 1]
+        _LOGGER.info("%s starting IP recovery attempt %d/%d (%s mark)", 
+                    self.device_name, self.attempts_made, self.max_attempts, timeline_name)
     
     def reset_on_success(self) -> None:
         """Reset attempts counter on successful connection."""
@@ -155,17 +172,27 @@ class ConservativeIPRecovery:
             _LOGGER.info("%s IP recovery successful, resetting attempt counter", self.device_name)
             self.attempts_made = 0
             self.exhausted = False
+            self.device_offline_start = None
     
     def get_status(self) -> Dict[str, Any]:
         """Get recovery status for diagnostics."""
+        current_time = time.time()
+        next_attempt_time = None
+        
+        if not self.exhausted and self.attempts_made < self.max_attempts and self.device_offline_start:
+            next_required_offline = self.escalation_timeline[self.attempts_made]
+            next_attempt_time = self.device_offline_start + next_required_offline
+        
         return {
             "attempts_made": self.attempts_made,
             "max_attempts": self.max_attempts,
             "exhausted": self.exhausted,
-            "time_since_last_attempt": time.time() - self.last_attempt_time if self.last_attempt_time > 0 else None,
-            "can_attempt": self.can_attempt_recovery(),
+            "device_offline_start": self.device_offline_start,
+            "time_offline": current_time - self.device_offline_start if self.device_offline_start else None,
+            "next_attempt_in": max(0, next_attempt_time - current_time) if next_attempt_time else None,
+            "can_attempt": self.can_attempt_recovery(current_time),
         }
-
+    
 class SmartErrorTracker:
     """Smart error tracking to prevent log pollution."""
     
@@ -309,33 +336,22 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         self._error_detection_task = None
 
     async def _async_setup(self) -> None:
-        """Set up the coordinator with startup IP recovery."""
+        """Set up the coordinator - simplified without startup IP recovery."""
         if self._initialized:
             return
             
         try:
             _LOGGER.debug("Initializing MaxSmart device: %s (%s)", self.device_name, self.device_ip)
             
-            # Try initial connection
+            # Try initial connection at stored IP
             success = await self._try_connect_at_ip(self.device_ip)
             
             if success:
                 await self._complete_successful_setup()
                 return
             
-            # Initial connection failed - try IP recovery ONCE at startup
-            _LOGGER.info("%s initial connection failed, attempting startup IP recovery", self.device_name)
-            
-            new_ip = await self._attempt_startup_ip_recovery()
-            if new_ip:
-                success = await self._try_connect_at_ip(new_ip)
-                if success:
-                    await self._update_device_ip(new_ip)
-                    await self._complete_successful_setup()
-                    return
-            
-            # Both original IP and recovery failed - create resilient setup
-            _LOGGER.info("Creating resilient setup for offline device: %s", self.device_name)
+            # Initial connection failed - device is offline, set up resilient mode
+            _LOGGER.info("Device %s offline at startup, creating resilient setup", self.device_name)
             self._create_resilient_setup()
             
         except Exception as err:
@@ -446,13 +462,18 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         self._error_detection_task = asyncio.create_task(self._offline_retry_loop())
 
     async def _offline_retry_loop(self) -> None:
-        """Conservative retry loop for offline devices with IP recovery."""
+        """Conservative retry loop for offline devices with integrated IP recovery."""
         try:
             retry_interval = 60  # Start with 1 minute
             max_interval = 300   # Max 5 minutes
+            offline_start_time = time.time()
+            
+            # Set offline start time for IP recovery timeline
+            self.ip_recovery.set_device_offline_start(offline_start_time)
             
             while not self._initialized:
                 await asyncio.sleep(retry_interval)
+                current_time = time.time()
                 
                 try:
                     _LOGGER.debug("Attempting to reconnect offline device: %s", self.device_name)
@@ -464,9 +485,12 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
                         await self._complete_successful_setup()
                         return
                     
-                    # Original IP failed - try IP recovery if allowed
-                    if self.ip_recovery.can_attempt_recovery():
-                        new_ip = await self._attempt_runtime_ip_recovery()
+                    # Original IP failed - record error for smart logging
+                    should_log = self.error_tracker.record_error("connection_refused")
+                    
+                    # Check if IP recovery should be attempted
+                    if self.ip_recovery.can_attempt_recovery(current_time):
+                        new_ip = await self._attempt_runtime_ip_recovery(current_time)
                         if new_ip:
                             success = await self._try_connect_at_ip(new_ip)
                             if success:
@@ -485,7 +509,6 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
             pass
         except Exception as err:
             _LOGGER.error("Offline retry loop failed for %s: %s", self.device_name, err)
-
     def _start_conservative_error_detection(self) -> None:
         """Start background task with conservative error detection."""
         if self._error_detection_task:
@@ -494,34 +517,39 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         self._error_detection_task = asyncio.create_task(self._conservative_error_detection_loop())
 
     async def _conservative_error_detection_loop(self) -> None:
-        """Conservative error detection loop with IP recovery."""
+        """Conservative error detection loop with integrated IP recovery timeline."""
         try:
             while self._initialized:
                 await asyncio.sleep(120)  # Check every 2 minutes
+                current_time = time.time()
                 
                 # Check if device is considered offline
                 if self.error_tracker.is_device_considered_offline():
+                    
+                    # Set offline start time for IP recovery timeline
+                    if self.error_tracker.first_error_time:
+                        self.ip_recovery.set_device_offline_start(self.error_tracker.first_error_time)
                     
                     # Record error for smart logging
                     should_log = self.error_tracker.record_error("polling_timeout")
                     
                     if should_log:
-                        time_offline = time.time() - self.error_tracker.last_successful_poll
+                        time_offline = current_time - self.error_tracker.last_successful_poll
                         _LOGGER.warning("%s has been offline for %.0f seconds", 
                                       self.device_name, time_offline)
                     
-                    # Attempt conservative IP recovery
-                    if self.ip_recovery.can_attempt_recovery():
-                        await self._attempt_runtime_ip_recovery()
+                    # Check if IP recovery attempt should be made
+                    if self.ip_recovery.can_attempt_recovery(current_time):
+                        await self._attempt_runtime_ip_recovery(current_time)
                         
         except asyncio.CancelledError:
             pass
         except Exception as err:
             _LOGGER.error("Conservative error detection loop failed for %s: %s", self.device_name, err)
 
-    async def _attempt_runtime_ip_recovery(self) -> Optional[str]:
-        """Attempt conservative IP recovery during runtime."""
-        self.ip_recovery.start_attempt()
+    async def _attempt_runtime_ip_recovery(self, current_time: float) -> Optional[str]:
+        """Attempt conservative IP recovery during runtime with final exhaustion handling."""
+        self.ip_recovery.start_attempt(current_time)
         
         try:
             new_ip = await self._recover_device_ip()
@@ -532,12 +560,23 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
                 return new_ip
             else:
                 _LOGGER.debug("%s IP recovery attempt found no new IP", self.device_name)
+                
+                # Check if this was the final attempt
+                if self.ip_recovery.attempts_made >= self.ip_recovery.max_attempts:
+                    _LOGGER.warning("%s IP recovery failed %d/%d - device requires manual intervention", 
+                                  self.device_name, self.ip_recovery.attempts_made, self.ip_recovery.max_attempts)
+                
                 return None
                 
         except Exception as err:
             _LOGGER.debug("%s IP recovery attempt failed: %s", self.device_name, err)
+            
+            # Check if this was the final attempt
+            if self.ip_recovery.attempts_made >= self.ip_recovery.max_attempts:
+                _LOGGER.warning("%s IP recovery failed %d/%d - device requires manual intervention", 
+                              self.device_name, self.ip_recovery.attempts_made, self.ip_recovery.max_attempts)
+            
             return None
-
     async def _restart_polling_with_new_ip(self, new_ip: str) -> None:
         """Restart intelligent polling with new IP address."""
         try:
