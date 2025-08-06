@@ -564,6 +564,10 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
                     _LOGGER.warning("📊 ERROR TRACKING: %s - Error recorded, consecutive_errors=%d",
                                    self.device_name, self.error_tracker.consecutive_errors)
 
+                    # 🚀 IMMEDIATE ARP CHECK: Check for IP change on every failure
+                    if self.mac_address:
+                        asyncio.create_task(self._immediate_arp_check())
+
                     # NEW: Check if IP recovery should be attempted based on consecutive failures
                     _LOGGER.warning("🔍 IP RECOVERY CHECK: %s - Errors=%d, threshold=3, MAC=%s",
                                  self.device_name, self.error_tracker.consecutive_errors,
@@ -676,8 +680,9 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
 
     async def _attempt_runtime_ip_recovery(self, current_time: float) -> Optional[str]:
         """Attempt conservative IP recovery during runtime with final exhaustion handling."""
-        _LOGGER.info("%s STARTING IP RECOVERY ATTEMPT - Current IP: %s, MAC: %s",
-                    self.device_name, self.device_ip, self.mac_address)
+        _LOGGER.info("🔍 IP RECOVERY: %s - Starting recovery (Current IP: %s, MAC: %s)",
+                     self.device_name, self.device_ip, self.mac_address[:12] + "...")
+        _LOGGER.warning("📋 CONFIG ENTRY RAW BEFORE: %s", dict(self.config_entry.data))
 
         self.ip_recovery.start_attempt(current_time)
 
@@ -686,7 +691,7 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
             new_ip = await self._recover_device_ip()
 
             if new_ip and new_ip != self.device_ip:
-                _LOGGER.info("%s IP recovery SUCCESS: Found new address %s -> %s",
+                _LOGGER.info("✅ IP RECOVERY: %s - Found new address %s → %s",
                            self.device_name, self.device_ip, new_ip)
 
                 # Test connection to new IP before switching
@@ -734,6 +739,12 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
             await self._update_device_ip(new_ip)
             self.device = MaxSmartDevice(new_ip)
             await self.device.initialize_device()
+
+            # Log device info to verify firmware version and watt multiplier
+            _LOGGER.debug("🔧 DEVICE RECREATED: Firmware=%s, WattFormat=%s, Multiplier=%s",
+                         getattr(self.device, 'version', 'Unknown'),
+                         getattr(self.device, '_watt_format', 'Unknown'),
+                         getattr(self.device, '_watt_multiplier', 1.0))
             
             # Restart polling
             await self.device.start_adaptive_polling(enable_burst=True)
@@ -776,6 +787,31 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
                 
             # Return empty data instead of raising UpdateFailed
             return {}
+
+    async def _immediate_arp_check(self) -> None:
+        """Immediate ARP check on every connection failure - lightweight IP recovery."""
+        try:
+            _LOGGER.debug("🔍 IMMEDIATE ARP: %s - Checking for IP change", self.device_name)
+
+            # Quick ARP lookup
+            new_ip = await self._get_ip_from_arp_table(self.mac_address)
+
+            if new_ip and new_ip != self.device_ip:
+                _LOGGER.info("🚀 IMMEDIATE ARP: %s - IP changed %s → %s, fixing immediately!",
+                           self.device_name, self.device_ip, new_ip)
+
+                # Test connection to new IP
+                connection_test = await self._try_connect_at_ip(new_ip)
+                if connection_test:
+                    _LOGGER.info("✅ IMMEDIATE ARP: %s - New IP works, switching immediately", self.device_name)
+                    await self._restart_polling_with_new_ip(new_ip)
+                else:
+                    _LOGGER.warning("❌ IMMEDIATE ARP: %s - New IP %s doesn't work", self.device_name, new_ip)
+            else:
+                _LOGGER.debug("🔍 IMMEDIATE ARP: %s - No IP change detected, continuing normal retry", self.device_name)
+
+        except Exception as e:
+            _LOGGER.debug("🔍 IMMEDIATE ARP: %s - Exception: %s", self.device_name, e)
 
     async def _recover_device_ip(self) -> Optional[str]:
         """Attempt to recover device IP using MAC address lookup."""
@@ -920,13 +956,17 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
 
             _LOGGER.debug("%s Discovery: Found %d devices", self.device_name, len(devices))
 
+            # Log raw discovery data
+            for i, device in enumerate(devices):
+                _LOGGER.warning("🔍 DISCOVERY RAW DEVICE %d: %s", i+1, device)
+
             # Primary: MAC address matching
             target_mac_normalized = self._normalize_mac(self.mac_address)
             _LOGGER.debug("%s Discovery: Looking for MAC %s (normalized: %s)",
                          self.device_name, self.mac_address, target_mac_normalized)
 
             for i, device in enumerate(devices):
-                device_mac = device.get("mac_address") or device.get("pclmac", "")
+                device_mac = device.get("mac") or device.get("pclmac", "")  # Fixed: use "mac" key
                 device_ip = device.get("ip", "unknown")
 
                 _LOGGER.debug("%s Discovery: Device %d - IP: %s, MAC: %s",
@@ -1027,6 +1067,7 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
             )
             
             self.device_ip = new_ip
+            _LOGGER.warning("📋 CONFIG ENTRY RAW AFTER: %s", new_data)
             _LOGGER.info("Updated device %s IP address to %s", self.device_name, new_ip)
             
         except Exception as e:
@@ -1155,7 +1196,7 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         device_name_changed = self.device_name != old_device_name
         
         if ip_changed:
-            _LOGGER.info("Device IP updated in config: %s → %s", old_ip, new_ip)
+            _LOGGER.info("📋 CONFIG ENTRY AFTER: device_ip=%s → %s", old_ip, new_ip)
             await self._handle_manual_ip_change(new_ip)
         elif device_name_changed:
             _LOGGER.info("Device name updated: %s → %s", old_device_name, self.device_name)
