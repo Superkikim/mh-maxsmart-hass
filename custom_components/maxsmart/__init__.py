@@ -22,7 +22,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     device_name = entry.data.get("device_name", "Unknown")
     device_ip = entry.data["device_ip"]
     
-    _LOGGER.info("Setting up MaxSmart integration: %s (%s)", device_name, device_ip)
+    _LOGGER.debug("Setting up MaxSmart integration: %s (%s)", device_name, device_ip)
     
     # Check for and perform migration ONLY ONCE for all entries
     if not hass.data.get(DOMAIN, {}).get('_migration_checked', False):
@@ -53,7 +53,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                             "notification_id": "maxsmart_migration_success"
                         }
                     )
-                    _LOGGER.info("Migration notification popup displayed successfully")
+                    _LOGGER.debug("Migration notification popup displayed successfully")
                 except Exception as err:
                     _LOGGER.warning("Failed to display migration notification: %s", err)
                 
@@ -92,7 +92,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         
         # Log hardware information if available
         hw_info = _format_hardware_info(entry.data)
-        _LOGGER.info("MaxSmart integration setup completed: %s (%s)%s", device_name, device_ip, hw_info)
+        _LOGGER.debug("MaxSmart integration setup completed: %s (%s)%s", device_name, device_ip, hw_info)
         return True
         
     except Exception as err:
@@ -102,7 +102,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     device_name = entry.data.get("device_name", "Unknown")
-    _LOGGER.info("Unloading MaxSmart integration: %s", device_name)
+    _LOGGER.debug("Unloading MaxSmart integration: %s", device_name)
     
     # Unload platforms
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
@@ -125,7 +125,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             }
             hass.data[DOMAIN] = migration_data
             
-        _LOGGER.info("MaxSmart integration unloaded successfully: %s", device_name)
+        _LOGGER.debug("MaxSmart integration unloaded successfully: %s", device_name)
     else:
         _LOGGER.error("Failed to unload MaxSmart integration: %s", device_name)
     
@@ -134,7 +134,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update (called when user changes names via options flow)."""
     device_name = entry.data.get("device_name", "Unknown")
-    _LOGGER.info("Updating options for MaxSmart device: %s", device_name)
+    _LOGGER.debug("Updating options for MaxSmart device: %s", device_name)
     
     try:
         # Get coordinator
@@ -143,7 +143,7 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
         # Reload coordinator with new config
         await coordinator.async_reload_from_config()
         
-        _LOGGER.info("Options updated successfully for MaxSmart device: %s", device_name)
+        _LOGGER.debug("Options updated successfully for MaxSmart device: %s", device_name)
         
     except Exception as err:
         _LOGGER.error("Failed to update options for MaxSmart device %s: %s", device_name, err)
@@ -157,7 +157,7 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     if version == 1:
         # Check if this is actually a legacy entry that needs data migration
         if not _is_enhanced_format(config_entry):
-            _LOGGER.info("Legacy config entry detected, will be migrated during setup")
+            _LOGGER.debug("Legacy config entry detected, will be migrated during setup")
             # The actual migration happens in async_setup_entry
             # This just ensures the version is correct
         return True
@@ -177,12 +177,12 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle removal of an entry."""
     device_name = entry.data.get("device_name", "Unknown")
-    _LOGGER.info("Removing MaxSmart integration: %s", device_name)
+    _LOGGER.debug("Removing MaxSmart integration: %s", device_name)
     
     # Cleanup any persistent data if needed
     # (Currently not needed as we don't store persistent data)
     
-    _LOGGER.info("MaxSmart integration removed: %s", device_name)
+    _LOGGER.debug("MaxSmart integration removed: %s", device_name)
 
 def _is_enhanced_format(entry: ConfigEntry) -> bool:
     """Check if config entry is already in enhanced format."""

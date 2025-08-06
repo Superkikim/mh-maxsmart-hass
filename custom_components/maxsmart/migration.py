@@ -41,7 +41,7 @@ class MaxSmartMigrationManager:
             _LOGGER.debug("No MaxSmart entries found for migration")
             return migration_summary
             
-        _LOGGER.info("Checking %d MaxSmart config entries for robust migration", len(entries))
+        _LOGGER.debug("Checking %d MaxSmart config entries for robust migration", len(entries))
         
         # Discover current devices for mapping
         current_devices = await self._discover_current_devices()
@@ -94,7 +94,7 @@ class MaxSmartMigrationManager:
         if entry_serial:
             for device in current_devices:
                 if device.get("sn") == entry_serial:
-                    _LOGGER.info("Found serial match: %s (IP changed %s -> %s)", 
+                    _LOGGER.debug("Found serial match: %s (IP changed %s -> %s)",
                                entry_serial, entry_ip, device.get("ip"))
                     return device
         
@@ -109,7 +109,7 @@ class MaxSmartMigrationManager:
                     device_mac = device.get("mac") or device.get("pclmac")
 
                     if device_mac and self._normalize_mac(entry_mac) == self._normalize_mac(device_mac):
-                        _LOGGER.info("Found MAC match: %s (%s -> %s)",
+                        _LOGGER.debug("Found MAC match: %s (%s -> %s)",
                                    entry_mac, entry_ip, device.get("ip"))
                         return device
                         
@@ -159,7 +159,7 @@ class MaxSmartMigrationManager:
                 _LOGGER.debug("Device %s has %d ports, no cleanup needed", entry.title, detected_port_count)
                 return
             
-            _LOGGER.info("Device %s is 1-port, checking for incorrect master entities to remove", entry.title)
+            _LOGGER.debug("Device %s is 1-port, checking for incorrect master entities to remove", entry.title)
             
             # Get entity registry (correct import)
             from homeassistant.helpers import entity_registry as er
@@ -197,12 +197,12 @@ class MaxSmartMigrationManager:
             for domain, entity_id, description in entities_to_remove:
                 try:
                     entity_registry.async_remove(entity_id)
-                    _LOGGER.info("Removed %s: %s", description, entity_id)
+                    _LOGGER.debug("Removed %s: %s", description, entity_id)
                 except Exception as e:
                     _LOGGER.warning("Failed to remove entity %s: %s", entity_id, e)
             
             if entities_to_remove:
-                _LOGGER.info("Cleaned up %d incorrect entities for 1-port device %s", len(entities_to_remove), entry.title)
+                _LOGGER.debug("Cleaned up %d incorrect entities for 1-port device %s", len(entities_to_remove), entry.title)
             else:
                 _LOGGER.debug("No incorrect entities found for 1-port device %s", entry.title)
                 
@@ -252,11 +252,11 @@ class MaxSmartMigrationManager:
             migration_version = entry.data.get("migration", "")
 
             if migration_version == "2025.7.1":
-                _LOGGER.info("Migration scenario: 2025.7.1 → 2025.8.1 (fixing empty MAC address)")
+                _LOGGER.debug("Migration scenario: 2025.7.1 → 2025.8.1 (fixing empty MAC address)")
             elif not migration_version:
-                _LOGGER.info("Migration scenario: Legacy → 2025.8.1 (full migration)")
+                _LOGGER.debug("Migration scenario: Legacy → 2025.8.1 (full migration)")
             else:
-                _LOGGER.info("Migration scenario: %s → 2025.8.1 (upgrade)", migration_version)
+                _LOGGER.debug("Migration scenario: %s → 2025.8.1 (upgrade)", migration_version)
                 
             # Detect legacy format
             if not self._is_legacy_entry(entry):
@@ -264,7 +264,7 @@ class MaxSmartMigrationManager:
                 return result
                 
             result["status"] = "legacy_detected"
-            _LOGGER.info("Migrating legacy entry: %s (%s)", entry.title, entry.data.get("device_ip"))
+            _LOGGER.debug("Migrating legacy entry: %s (%s)", entry.title, entry.data.get("device_ip"))
             
             # Find matching device using robust matching
             matched_device = await self._find_matching_device(entry, current_devices)
@@ -300,7 +300,7 @@ class MaxSmartMigrationManager:
             result["status"] = "legacy_migrated"
             result["changes"] = self._calculate_changes(entry.data, enhanced_data)
             
-            _LOGGER.info("Successfully migrated %s: preserved unique_id %s, method=%s", 
+            _LOGGER.debug("Successfully migrated %s: preserved unique_id %s, method=%s",
                         entry.title, entry.unique_id, result["matching_method"])
             
         except Exception as err:
@@ -379,13 +379,13 @@ class MaxSmartMigrationManager:
                 existing_port_count = port_id
         
         if existing_port_count > 0:
-            _LOGGER.info("PRESERVING existing port configuration: %d ports", existing_port_count)
+            _LOGGER.debug("PRESERVING existing port configuration: %d ports", existing_port_count)
             return existing_port_count
         
         # Method 2: Check if stored port count exists
         stored_count = old_data.get("port_count")
         if stored_count and isinstance(stored_count, int) and stored_count in [1, 6]:
-            _LOGGER.info("Using stored port count: %d", stored_count)
+            _LOGGER.debug("Using stored port count: %d", stored_count)
             return stored_count
             
         # Method 3: Analyze old entity structure if available
@@ -485,11 +485,11 @@ class MaxSmartMigrationManager:
             devices = await MaxSmartDiscovery.discover_maxsmart(enhance_with_hardware_ids=True)
             _LOGGER.debug("🔍 MIGRATION DISCOVERY: Found %d devices", len(devices))
 
-            # DEBUG: Log all discovered devices
-            for i, device in enumerate(devices):
-                _LOGGER.debug("🔍 MIGRATION DISCOVERY: Device %d = %s", i+1, device)
-                _LOGGER.debug("🔍 MIGRATION DISCOVERY: Device %d - IP: %s, CPU: %s, MAC: %s",
-                             i+1, device.get("ip"), device.get("cpuid"), device.get("mac"))
+            # DEBUG: Log device count only
+            if devices:
+                _LOGGER.debug("🔍 MIGRATION DISCOVERY: Found devices: %s",
+                             [f"{d.get('name', 'Unknown')}@{d.get('ip', 'Unknown')}" for d in devices[:3]] +
+                             (["..."] if len(devices) > 3 else []))
 
             return devices or []
         except Exception as err:
@@ -531,7 +531,7 @@ class MaxSmartMigrationManager:
         """Preserve port names from legacy configuration with smart port logic."""
         port_count = enhanced_data["port_count"]
         
-        _LOGGER.info("Preserving port names for %d-port device", port_count)
+        _LOGGER.debug("Preserving port names for %d-port device", port_count)
         
         # Copy existing port names (PRESERVE existing configuration)
         for port_id in range(1, port_count + 1):
@@ -554,9 +554,9 @@ class MaxSmartMigrationManager:
         # 1-port devices should not have master switches or total power sensors
         
         if port_count == 1:
-            _LOGGER.info("1-port device detected: Entity factory will create NO master switch or total power sensor")
+            _LOGGER.debug("1-port device detected: Entity factory will create NO master switch or total power sensor")
         else:
-            _LOGGER.info("%d-port device detected: Entity factory will create master switch + total power sensor", port_count)
+            _LOGGER.debug("%d-port device detected: Entity factory will create master switch + total power sensor", port_count)
                     
     def _calculate_changes(self, old_data: Dict[str, Any], new_data: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate what changed during migration."""
@@ -612,8 +612,8 @@ class MaxSmartMigrationManager:
                 except:
                     pass
                     
-                _LOGGER.info("Migrated: %s (method: %s)%s - preserved unique_id: %s", 
-                           detail["title"], detail.get("matching_method", "unknown"), 
+                _LOGGER.debug("Migrated: %s (method: %s)%s - preserved unique_id: %s",
+                           detail["title"], detail.get("matching_method", "unknown"),
                            port_info, detail["old_unique_id"])
             elif detail["status"] == "migration_failed":
                 _LOGGER.warning("Failed: %s - %s", detail["title"], detail["error"])

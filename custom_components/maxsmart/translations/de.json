@@ -76,6 +76,13 @@
           "port_5_name": "Neuer Name für Anschluss 5",
           "port_6_name": "Neuer Name für Anschluss 6"
         }
+      },
+      "confirm_ip_change": {
+        "title": "IP-Adresse Änderung bestätigen",
+        "description": "⚠️ Warnung: Die neue IP-Adresse {new_ip} antwortet nicht auf Verbindungstests.\n\nDies könnte bedeuten:\n• Das Gerät ist nicht unter dieser IP-Adresse erreichbar\n• Das Gerät ist vorübergehend offline\n• Netzwerkverbindungsprobleme\n\nMöchten Sie trotzdem die IP-Adresse für '{device_name}' ändern?",
+        "data": {
+          "confirm": "Ja, IP-Adresse trotzdem ändern"
+        }
       }
     },
     "error": {

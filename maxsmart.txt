@@ -1,0 +1,191 @@
+2025-08-06 22:03:21.533 WARNING (MainThread) [custom_components.maxsmart.coordinator] Salon 2 using fallback polling
+2025-08-06 22:03:21.564 WARNING (MainThread) [custom_components.maxsmart.coordinator] Salon 2 using fallback polling
+2025-08-06 22:03:57.741 DEBUG (MainThread) [custom_components.maxsmart.config_flow] Testing connection to new IP 172.30.47.67 for Salon 2
+2025-08-06 22:03:57.742 DEBUG (MainThread) [custom_components.maxsmart.config_flow] Testing connection to IP 172.30.47.67
+2025-08-06 22:04:01.548 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Manually updated MaxSmart Salon 2 data
+2025-08-06 22:04:03.753 ERROR (MainThread) [root] No MaxSmart devices found during discovery.
+2025-08-06 22:04:03.753 WARNING (MainThread) [root] Missing translation for key 'ERROR_DISCOVERY_FAILED' in language 'en' - using default
+2025-08-06 22:04:03.754 ERROR (MainThread) [root] Connection error for device 172.30.47.67: Unknown error.
+2025-08-06 22:04:03.754 ERROR (MainThread) [root] Device initialization failed for 172.30.47.67: Unknown error.
+2025-08-06 22:04:03.754 WARNING (MainThread) [custom_components.maxsmart.config_flow] ❌ IP TEST: 172.30.47.67 doesn't respond: Unknown error.
+2025-08-06 22:04:06.549 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Manually updated MaxSmart Salon 2 data
+2025-08-06 22:04:11.414 DEBUG (MainThread) [custom_components.maxsmart] Updating options for MaxSmart device: Salon 2
+2025-08-06 22:04:11.414 DEBUG (MainThread) [custom_components.maxsmart.messages] 📋 CONFIG RAW BEFORE (user_options): {'best_unique_id': 'cpu_30FFD2054253393045381143', 'cpu_id': '30FFD2054253393045381143', 'device_ip': '172.30.47.67', 'device_name': 'Salon 2', 'device_unique_id': 'SWP6023002002810', 'firmware_version': '2.11', 'hardware_enhanced': True, 'identification_method': 'cpu_id', 'mac_address': 'bc:2b:d7:00:4d:1c', 'migration': '2025.8.1', 'migration_timestamp': '2025-08-06T11:05:43.958888', 'original_unique_id': 'SWP6023002002810', 'pclmac': '', 'port_1_name': 'Port 1', 'port_2_name': 'Port 2', 'port_3_name': 'Port 3', 'port_4_name': 'Port 4', 'port_5_name': 'Port 5', 'port_6_name': 'Port 6', 'port_count': 6, 'sw_version': '2.11', 'udp_serial': 'SWP6023002002810'}
+2025-08-06 22:04:11.414 DEBUG (MainThread) [custom_components.maxsmart.messages] 📋 CONFIG RAW AFTER: {'best_unique_id': 'cpu_30FFD2054253393045381143', 'cpu_id': '30FFD2054253393045381143', 'device_ip': '172.30.47.67', 'device_name': 'Salon 2', 'device_unique_id': 'SWP6023002002810', 'firmware_version': '2.11', 'hardware_enhanced': True, 'identification_method': 'cpu_id', 'mac_address': 'bc:2b:d7:00:4d:1c', 'migration': '2025.8.1', 'migration_timestamp': '2025-08-06T11:05:43.958888', 'original_unique_id': 'SWP6023002002810', 'pclmac': '', 'port_1_name': 'Port 1', 'port_2_name': 'Port 2', 'port_3_name': 'Port 3', 'port_4_name': 'Port 4', 'port_5_name': 'Port 5', 'port_6_name': 'Port 6', 'port_count': 6, 'sw_version': '2.11', 'udp_serial': 'SWP6023002002810'}
+2025-08-06 22:04:11.415 INFO (MainThread) [custom_components.maxsmart.config_flow] IP address changed for Salon 2: 172.30.47.67 → 172.30.47.67
+2025-08-06 22:04:11.416 DEBUG (MainThread) [custom_components.maxsmart] Unloading MaxSmart integration: Salon 2
+2025-08-06 22:04:11.418 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Shutting down coordinator for Salon 2
+2025-08-06 22:04:11.418 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Intelligent polling stopped and device connection closed: 172.30.47.67
+2025-08-06 22:04:11.418 DEBUG (MainThread) [custom_components.maxsmart] MaxSmart integration unloaded successfully: Salon 2
+2025-08-06 22:04:11.418 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Shutting down coordinator for Salon 2
+2025-08-06 22:04:11.418 DEBUG (MainThread) [custom_components.maxsmart] Setting up MaxSmart integration: Salon 2 (172.30.47.67)
+2025-08-06 22:04:11.418 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 🔍 COORDINATOR INIT: Extracted MAC='bc:2b:d7:00:4d:1c', CPU_ID='30FFD2054253393045381143', Method='cpu_id'
+2025-08-06 22:04:11.418 DEBUG (MainThread) [custom_components.maxsmart.messages] Setting up MaxSmart device: Salon 2 at 172.30.47.67
+2025-08-06 22:04:11.418 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 📋 CONFIG ENTRY DATA: Complete entry data = {'best_unique_id': 'cpu_30FFD2054253393045381143', 'cpu_id': '30FFD2054253393045381143', 'device_ip': '172.30.47.67', 'device_name': 'Salon 2', 'device_unique_id': 'SWP6023002002810', 'firmware_version': '2.11', 'hardware_enhanced': True, 'identification_method': 'cpu_id', 'mac_address': 'bc:2b:d7:00:4d:1c', 'migration': '2025.8.1', 'migration_timestamp': '2025-08-06T11:05:43.958888', 'original_unique_id': 'SWP6023002002810', 'pclmac': '', 'port_1_name': 'Port 1', 'port_2_name': 'Port 2', 'port_3_name': 'Port 3', 'port_4_name': 'Port 4', 'port_5_name': 'Port 5', 'port_6_name': 'Port 6', 'port_count': 6, 'sw_version': '2.11', 'udp_serial': 'SWP6023002002810'}
+2025-08-06 22:04:11.419 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 📋 CONFIG ENTRY OPTIONS: Complete entry options = {}
+2025-08-06 22:04:11.419 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 🔄 SETUP: Device config - MAC: bc:2b:d7:00:4d:1c, CPU ID: 30FFD2054253393045381143, Method: cpu_id
+2025-08-06 22:04:11.419 DEBUG (MainThread) [custom_components.maxsmart.messages] 🔌 CONNECTION TEST: Salon 2 - Testing 172.30.47.67
+2025-08-06 22:04:11.419 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 Error detection: Loop cancelled
+2025-08-06 22:04:17.432 ERROR (MainThread) [root] No MaxSmart devices found during discovery.
+2025-08-06 22:04:17.433 WARNING (MainThread) [root] Missing translation for key 'ERROR_DISCOVERY_FAILED' in language 'en' - using default
+2025-08-06 22:04:17.433 ERROR (MainThread) [root] Connection error for device 172.30.47.67: Unknown error.
+2025-08-06 22:04:17.433 ERROR (MainThread) [root] Device initialization failed for 172.30.47.67: Unknown error.
+2025-08-06 22:04:17.433 DEBUG (MainThread) [custom_components.maxsmart.messages] ❌ CONNECTION TEST: Salon 2 - 172.30.47.67 failed: Unknown error.
+2025-08-06 22:04:17.433 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Manually updated MaxSmart Salon 2 data
+2025-08-06 22:04:17.434 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:17.435 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:17.435 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:17.435 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Created 7 switch entities for Salon 2 (6-port device, method: cpu_id)
+2025-08-06 22:04:17.436 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Finished fetching MaxSmart Salon 2 data in 0.000 seconds (success: True)
+2025-08-06 22:04:17.441 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:17.441 DEBUG (MainThread) [custom_components.maxsmart.switch] Added 7/7 MaxSmart switch entities for Salon 2
+2025-08-06 22:04:17.441 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:17.441 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:17.441 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:17.441 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Created 7 sensor entities for Salon 2 (6-port device, method: cpu_id)
+2025-08-06 22:04:17.444 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:17.444 DEBUG (MainThread) [custom_components.maxsmart.sensor] Added 7/7 MaxSmart sensor entities for Salon 2
+2025-08-06 22:04:17.444 DEBUG (MainThread) [custom_components.maxsmart] MaxSmart integration setup completed: Salon 2 (172.30.47.67) [ID: Cpu Id, CPU: 30FFD205..., MAC: bc:2b:d7:00:4d:1c]
+2025-08-06 22:04:17.452 WARNING (MainThread) [custom_components.maxsmart.coordinator] 🔄 OFFLINE RETRY LOOP: Salon 2 - ENTERING retry loop function
+2025-08-06 22:04:17.452 WARNING (MainThread) [custom_components.maxsmart.coordinator] 🔄 OFFLINE RETRY: Salon 2 - Starting retry loop (interval=60s, max=300s)
+2025-08-06 22:04:17.452 WARNING (MainThread) [custom_components.maxsmart.coordinator] 🔄 OFFLINE RETRY LOOP: Salon 2 - About to enter while loop, initialized=False
+2025-08-06 22:04:17.452 WARNING (MainThread) [custom_components.maxsmart.coordinator] 🔄 OFFLINE RETRY LOOP: Salon 2 - Starting iteration, waiting 60s
+2025-08-06 22:04:17.453 DEBUG (MainThread) [custom_components.maxsmart] Unloading MaxSmart integration: Salon 2
+2025-08-06 22:04:17.453 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Shutting down coordinator for Salon 2
+2025-08-06 22:04:17.453 DEBUG (MainThread) [custom_components.maxsmart] MaxSmart integration unloaded successfully: Salon 2
+2025-08-06 22:04:17.453 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Shutting down coordinator for Salon 2
+2025-08-06 22:04:17.453 DEBUG (MainThread) [custom_components.maxsmart] Setting up MaxSmart integration: Salon 2 (172.30.47.67)
+2025-08-06 22:04:17.454 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 🔍 COORDINATOR INIT: Extracted MAC='bc:2b:d7:00:4d:1c', CPU_ID='30FFD2054253393045381143', Method='cpu_id'
+2025-08-06 22:04:17.454 DEBUG (MainThread) [custom_components.maxsmart.messages] Setting up MaxSmart device: Salon 2 at 172.30.47.67
+2025-08-06 22:04:17.454 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 📋 CONFIG ENTRY DATA: Complete entry data = {'best_unique_id': 'cpu_30FFD2054253393045381143', 'cpu_id': '30FFD2054253393045381143', 'device_ip': '172.30.47.67', 'device_name': 'Salon 2', 'device_unique_id': 'SWP6023002002810', 'firmware_version': '2.11', 'hardware_enhanced': True, 'identification_method': 'cpu_id', 'mac_address': 'bc:2b:d7:00:4d:1c', 'migration': '2025.8.1', 'migration_timestamp': '2025-08-06T11:05:43.958888', 'original_unique_id': 'SWP6023002002810', 'pclmac': '', 'port_1_name': 'Port 1', 'port_2_name': 'Port 2', 'port_3_name': 'Port 3', 'port_4_name': 'Port 4', 'port_5_name': 'Port 5', 'port_6_name': 'Port 6', 'port_count': 6, 'sw_version': '2.11', 'udp_serial': 'SWP6023002002810'}
+2025-08-06 22:04:17.454 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 📋 CONFIG ENTRY OPTIONS: Complete entry options = {}
+2025-08-06 22:04:17.454 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 🔄 SETUP: Device config - MAC: bc:2b:d7:00:4d:1c, CPU ID: 30FFD2054253393045381143, Method: cpu_id
+2025-08-06 22:04:17.454 DEBUG (MainThread) [custom_components.maxsmart.messages] 🔌 CONNECTION TEST: Salon 2 - Testing 172.30.47.67
+2025-08-06 22:04:23.469 ERROR (MainThread) [root] No MaxSmart devices found during discovery.
+2025-08-06 22:04:23.469 WARNING (MainThread) [root] Missing translation for key 'ERROR_DISCOVERY_FAILED' in language 'en' - using default
+2025-08-06 22:04:23.469 ERROR (MainThread) [root] Connection error for device 172.30.47.67: Unknown error.
+2025-08-06 22:04:23.469 ERROR (MainThread) [root] Device initialization failed for 172.30.47.67: Unknown error.
+2025-08-06 22:04:23.470 DEBUG (MainThread) [custom_components.maxsmart.messages] ❌ CONNECTION TEST: Salon 2 - 172.30.47.67 failed: Unknown error.
+2025-08-06 22:04:23.470 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Manually updated MaxSmart Salon 2 data
+2025-08-06 22:04:23.470 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:23.470 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:23.471 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:23.471 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Created 7 switch entities for Salon 2 (6-port device, method: cpu_id)
+2025-08-06 22:04:23.471 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Finished fetching MaxSmart Salon 2 data in 0.000 seconds (success: True)
+2025-08-06 22:04:23.474 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:23.474 DEBUG (MainThread) [custom_components.maxsmart.switch] Added 7/7 MaxSmart switch entities for Salon 2
+2025-08-06 22:04:23.474 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:23.475 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:23.475 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:23.475 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Created 7 sensor entities for Salon 2 (6-port device, method: cpu_id)
+2025-08-06 22:04:23.477 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:04:23.477 DEBUG (MainThread) [custom_components.maxsmart.sensor] Added 7/7 MaxSmart sensor entities for Salon 2
+2025-08-06 22:04:23.477 DEBUG (MainThread) [custom_components.maxsmart] MaxSmart integration setup completed: Salon 2 (172.30.47.67) [ID: Cpu Id, CPU: 30FFD205..., MAC: bc:2b:d7:00:4d:1c]
+2025-08-06 22:04:23.477 INFO (MainThread) [custom_components.maxsmart.coordinator] ✅ IP CHANGE: Salon 2 - Successfully changed IP to 172.30.47.67
+2025-08-06 22:04:23.477 DEBUG (MainThread) [custom_components.maxsmart] Options updated successfully for MaxSmart device: Salon 2
+2025-08-06 22:04:23.477 WARNING (MainThread) [custom_components.maxsmart.coordinator] 🔄 OFFLINE RETRY LOOP: Salon 2 - ENTERING retry loop function
+2025-08-06 22:04:23.477 WARNING (MainThread) [custom_components.maxsmart.coordinator] 🔄 OFFLINE RETRY: Salon 2 - Starting retry loop (interval=60s, max=300s)
+2025-08-06 22:04:23.477 WARNING (MainThread) [custom_components.maxsmart.coordinator] 🔄 OFFLINE RETRY LOOP: Salon 2 - About to enter while loop, initialized=False
+2025-08-06 22:04:23.477 WARNING (MainThread) [custom_components.maxsmart.coordinator] 🔄 OFFLINE RETRY LOOP: Salon 2 - Starting iteration, waiting 60s
+2025-08-06 22:04:33.472 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Finished fetching MaxSmart Salon 2 data in 0.000 seconds (success: True)
+2025-08-06 22:05:23.478 WARNING (MainThread) [custom_components.maxsmart.coordinator] 🔄 OFFLINE RETRY LOOP: Salon 2 - Sleep completed, starting attempt
+2025-08-06 22:05:23.478 DEBUG (MainThread) [custom_components.maxsmart.messages] 🔌 CONNECTION TEST: Salon 2 - Testing 172.30.47.67
+2025-08-06 22:05:29.488 ERROR (MainThread) [root] No MaxSmart devices found during discovery.
+2025-08-06 22:05:29.488 WARNING (MainThread) [root] Missing translation for key 'ERROR_DISCOVERY_FAILED' in language 'en' - using default
+2025-08-06 22:05:29.488 ERROR (MainThread) [root] Connection error for device 172.30.47.67: Unknown error.
+2025-08-06 22:05:29.489 ERROR (MainThread) [root] Device initialization failed for 172.30.47.67: Unknown error.
+2025-08-06 22:05:29.489 DEBUG (MainThread) [custom_components.maxsmart.messages] ❌ CONNECTION TEST: Salon 2 - 172.30.47.67 failed: Unknown error.
+2025-08-06 22:05:29.489 WARNING (MainThread) [custom_components.maxsmart.messages] 📊 ERROR: Salon 2 - connection_refused (consecutive: 2)
+2025-08-06 22:05:29.489 WARNING (MainThread) [custom_components.maxsmart.coordinator] 🔍 IP RECOVERY CHECK: Salon 2 - Errors=2, threshold=3, MAC=bc:2b:d7...
+2025-08-06 22:05:29.489 DEBUG (MainThread) [custom_components.maxsmart.coordinator] ⏳ IP RECOVERY CHECK: Salon 2 - Need 1 more errors (current: 2)
+2025-08-06 22:05:29.489 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 Offline retry: Increasing retry interval 60.0s -> 90.0s
+2025-08-06 22:05:29.489 WARNING (MainThread) [custom_components.maxsmart.coordinator] 🔄 OFFLINE RETRY LOOP: Salon 2 - Starting iteration, waiting 90s
+2025-08-06 22:05:29.490 DEBUG (MainThread) [custom_components.maxsmart.messages] 🔍 ARP CHECK: Salon 2 - Checking for IP change
+2025-08-06 22:05:29.490 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 ARP lookup: Running command ['arp', '-a'] on linux
+2025-08-06 22:05:29.572 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 ARP lookup: Got 61 lines of output
+2025-08-06 22:05:29.572 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 ARP lookup: Searching for MAC formats: bc-2b-d7-00-4d-1c or bc:2b:d7:00:4d:1c
+2025-08-06 22:05:29.572 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 ARP lookup: Found MAC match in line: home-socket (172.30.47.96) at bc:2b:d7:00:4d:1c [ether] on eno1
+2025-08-06 22:05:29.573 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 ARP lookup: Extracted IP 172.30.47.96 from line
+2025-08-06 22:05:29.573 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 ARP lookup: Found NEW IP 172.30.47.96 (current: 172.30.47.67)
+2025-08-06 22:05:29.573 DEBUG (MainThread) [custom_components.maxsmart.messages] 🚀 ARP CHECK: Salon 2 - IP changed 172.30.47.67 → 172.30.47.96
+2025-08-06 22:05:29.573 DEBUG (MainThread) [custom_components.maxsmart.messages] 🔌 CONNECTION TEST: Salon 2 - Testing 172.30.47.96
+2025-08-06 22:05:29.642 DEBUG (MainThread) [custom_components.maxsmart.messages] ✅ CONNECTION TEST: Salon 2 - 172.30.47.96 responds
+2025-08-06 22:05:29.642 DEBUG (MainThread) [custom_components.maxsmart.messages] 📋 CONFIG RAW BEFORE (arp_recovery): {'best_unique_id': 'cpu_30FFD2054253393045381143', 'cpu_id': '30FFD2054253393045381143', 'device_ip': '172.30.47.67', 'device_name': 'Salon 2', 'device_unique_id': 'SWP6023002002810', 'firmware_version': '2.11', 'hardware_enhanced': True, 'identification_method': 'cpu_id', 'mac_address': 'bc:2b:d7:00:4d:1c', 'migration': '2025.8.1', 'migration_timestamp': '2025-08-06T11:05:43.958888', 'original_unique_id': 'SWP6023002002810', 'pclmac': '', 'port_1_name': 'Port 1', 'port_2_name': 'Port 2', 'port_3_name': 'Port 3', 'port_4_name': 'Port 4', 'port_5_name': 'Port 5', 'port_6_name': 'Port 6', 'port_count': 6, 'sw_version': '2.11', 'udp_serial': 'SWP6023002002810'}
+2025-08-06 22:05:29.642 DEBUG (MainThread) [custom_components.maxsmart] Updating options for MaxSmart device: Salon 2
+2025-08-06 22:05:29.642 DEBUG (MainThread) [custom_components.maxsmart.messages] 📋 CONFIG RAW BEFORE (user_options): {'best_unique_id': 'cpu_30FFD2054253393045381143', 'cpu_id': '30FFD2054253393045381143', 'device_ip': '172.30.47.96', 'device_name': 'Salon 2', 'device_unique_id': 'SWP6023002002810', 'firmware_version': '2.11', 'hardware_enhanced': True, 'identification_method': 'cpu_id', 'mac_address': 'bc:2b:d7:00:4d:1c', 'migration': '2025.8.1', 'migration_timestamp': '2025-08-06T11:05:43.958888', 'original_unique_id': 'SWP6023002002810', 'pclmac': '', 'port_1_name': 'Port 1', 'port_2_name': 'Port 2', 'port_3_name': 'Port 3', 'port_4_name': 'Port 4', 'port_5_name': 'Port 5', 'port_6_name': 'Port 6', 'port_count': 6, 'sw_version': '2.11', 'udp_serial': 'SWP6023002002810'}
+2025-08-06 22:05:29.642 DEBUG (MainThread) [custom_components.maxsmart.messages] 📋 CONFIG RAW AFTER: {'best_unique_id': 'cpu_30FFD2054253393045381143', 'cpu_id': '30FFD2054253393045381143', 'device_ip': '172.30.47.96', 'device_name': 'Salon 2', 'device_unique_id': 'SWP6023002002810', 'firmware_version': '2.11', 'hardware_enhanced': True, 'identification_method': 'cpu_id', 'mac_address': 'bc:2b:d7:00:4d:1c', 'migration': '2025.8.1', 'migration_timestamp': '2025-08-06T11:05:43.958888', 'original_unique_id': 'SWP6023002002810', 'pclmac': '', 'port_1_name': 'Port 1', 'port_2_name': 'Port 2', 'port_3_name': 'Port 3', 'port_4_name': 'Port 4', 'port_5_name': 'Port 5', 'port_6_name': 'Port 6', 'port_count': 6, 'sw_version': '2.11', 'udp_serial': 'SWP6023002002810'}
+2025-08-06 22:05:29.643 DEBUG (MainThread) [custom_components.maxsmart] Unloading MaxSmart integration: Salon 2
+2025-08-06 22:05:29.644 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Shutting down coordinator for Salon 2
+2025-08-06 22:05:29.645 DEBUG (MainThread) [custom_components.maxsmart] MaxSmart integration unloaded successfully: Salon 2
+2025-08-06 22:05:29.645 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Shutting down coordinator for Salon 2
+2025-08-06 22:05:29.645 DEBUG (MainThread) [custom_components.maxsmart] Setting up MaxSmart integration: Salon 2 (172.30.47.96)
+2025-08-06 22:05:29.645 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 🔍 COORDINATOR INIT: Extracted MAC='bc:2b:d7:00:4d:1c', CPU_ID='30FFD2054253393045381143', Method='cpu_id'
+2025-08-06 22:05:29.645 DEBUG (MainThread) [custom_components.maxsmart.messages] Setting up MaxSmart device: Salon 2 at 172.30.47.96
+2025-08-06 22:05:29.645 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 📋 CONFIG ENTRY DATA: Complete entry data = {'best_unique_id': 'cpu_30FFD2054253393045381143', 'cpu_id': '30FFD2054253393045381143', 'device_ip': '172.30.47.96', 'device_name': 'Salon 2', 'device_unique_id': 'SWP6023002002810', 'firmware_version': '2.11', 'hardware_enhanced': True, 'identification_method': 'cpu_id', 'mac_address': 'bc:2b:d7:00:4d:1c', 'migration': '2025.8.1', 'migration_timestamp': '2025-08-06T11:05:43.958888', 'original_unique_id': 'SWP6023002002810', 'pclmac': '', 'port_1_name': 'Port 1', 'port_2_name': 'Port 2', 'port_3_name': 'Port 3', 'port_4_name': 'Port 4', 'port_5_name': 'Port 5', 'port_6_name': 'Port 6', 'port_count': 6, 'sw_version': '2.11', 'udp_serial': 'SWP6023002002810'}
+2025-08-06 22:05:29.645 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 📋 CONFIG ENTRY OPTIONS: Complete entry options = {}
+2025-08-06 22:05:29.645 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 🔄 SETUP: Device config - MAC: bc:2b:d7:00:4d:1c, CPU ID: 30FFD2054253393045381143, Method: cpu_id
+2025-08-06 22:05:29.645 DEBUG (MainThread) [custom_components.maxsmart.messages] 🔌 CONNECTION TEST: Salon 2 - Testing 172.30.47.96
+2025-08-06 22:05:29.651 DEBUG (MainThread) [custom_components.maxsmart.messages] 📋 CONFIG RAW AFTER: {'best_unique_id': 'cpu_30FFD2054253393045381143', 'cpu_id': '30FFD2054253393045381143', 'device_ip': '172.30.47.96', 'device_name': 'Salon 2', 'device_unique_id': 'SWP6023002002810', 'firmware_version': '2.11', 'hardware_enhanced': True, 'identification_method': 'cpu_id', 'mac_address': 'bc:2b:d7:00:4d:1c', 'migration': '2025.8.1', 'migration_timestamp': '2025-08-06T11:05:43.958888', 'original_unique_id': 'SWP6023002002810', 'pclmac': '', 'port_1_name': 'Port 1', 'port_2_name': 'Port 2', 'port_3_name': 'Port 3', 'port_4_name': 'Port 4', 'port_5_name': 'Port 5', 'port_6_name': 'Port 6', 'port_count': 6, 'sw_version': '2.11', 'udp_serial': 'SWP6023002002810'}
+2025-08-06 22:05:29.718 DEBUG (MainThread) [custom_components.maxsmart.messages] ✅ CONNECTION TEST: Salon 2 - 172.30.47.96 responds
+2025-08-06 22:05:29.784 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 adaptive polling started successfully
+2025-08-06 22:05:29.785 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 polling callback registered
+2025-08-06 22:05:29.785 WARNING (MainThread) [custom_components.maxsmart.coordinator] Salon 2 using fallback polling
+2025-08-06 22:05:29.787 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 Error detection: Starting conservative error detection loop
+2025-08-06 22:05:29.791 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 recovered successfully
+2025-08-06 22:05:29.791 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Finished fetching MaxSmart Salon 2 data in 0.007 seconds (success: True)
+2025-08-06 22:05:29.792 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.792 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.792 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.792 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Created 7 switch entities for Salon 2 (6-port device, method: cpu_id)
+2025-08-06 22:05:29.795 WARNING (MainThread) [custom_components.maxsmart.coordinator] Salon 2 using fallback polling
+2025-08-06 22:05:29.800 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.800 DEBUG (MainThread) [custom_components.maxsmart.switch] Added 7/7 MaxSmart switch entities for Salon 2
+2025-08-06 22:05:29.800 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.801 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.801 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.801 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Created 7 sensor entities for Salon 2 (6-port device, method: cpu_id)
+2025-08-06 22:05:29.809 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.809 DEBUG (MainThread) [custom_components.maxsmart.sensor] Added 7/7 MaxSmart sensor entities for Salon 2
+2025-08-06 22:05:29.818 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 recovered successfully
+2025-08-06 22:05:29.818 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Manually updated MaxSmart Salon 2 data
+2025-08-06 22:05:29.824 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Finished fetching MaxSmart Salon 2 data in 0.029 seconds (success: True)
+2025-08-06 22:05:29.829 DEBUG (MainThread) [custom_components.maxsmart] MaxSmart integration setup completed: Salon 2 (172.30.47.96) [ID: Cpu Id, CPU: 30FFD205..., MAC: bc:2b:d7:00:4d:1c]
+2025-08-06 22:05:29.829 INFO (MainThread) [custom_components.maxsmart.coordinator] ✅ IP CHANGE: Salon 2 - Successfully changed IP to 172.30.47.96
+2025-08-06 22:05:29.829 DEBUG (MainThread) [custom_components.maxsmart] Options updated successfully for MaxSmart device: Salon 2
+2025-08-06 22:05:29.830 DEBUG (MainThread) [custom_components.maxsmart] Unloading MaxSmart integration: Salon 2
+2025-08-06 22:05:29.831 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Shutting down coordinator for Salon 2
+2025-08-06 22:05:29.832 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Intelligent polling stopped and device connection closed: 172.30.47.96
+2025-08-06 22:05:29.832 DEBUG (MainThread) [custom_components.maxsmart] MaxSmart integration unloaded successfully: Salon 2
+2025-08-06 22:05:29.832 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Shutting down coordinator for Salon 2
+2025-08-06 22:05:29.833 DEBUG (MainThread) [custom_components.maxsmart] Setting up MaxSmart integration: Salon 2 (172.30.47.96)
+2025-08-06 22:05:29.833 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 🔍 COORDINATOR INIT: Extracted MAC='bc:2b:d7:00:4d:1c', CPU_ID='30FFD2054253393045381143', Method='cpu_id'
+2025-08-06 22:05:29.833 DEBUG (MainThread) [custom_components.maxsmart.messages] Setting up MaxSmart device: Salon 2 at 172.30.47.96
+2025-08-06 22:05:29.833 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 📋 CONFIG ENTRY DATA: Complete entry data = {'best_unique_id': 'cpu_30FFD2054253393045381143', 'cpu_id': '30FFD2054253393045381143', 'device_ip': '172.30.47.96', 'device_name': 'Salon 2', 'device_unique_id': 'SWP6023002002810', 'firmware_version': '2.11', 'hardware_enhanced': True, 'identification_method': 'cpu_id', 'mac_address': 'bc:2b:d7:00:4d:1c', 'migration': '2025.8.1', 'migration_timestamp': '2025-08-06T11:05:43.958888', 'original_unique_id': 'SWP6023002002810', 'pclmac': '', 'port_1_name': 'Port 1', 'port_2_name': 'Port 2', 'port_3_name': 'Port 3', 'port_4_name': 'Port 4', 'port_5_name': 'Port 5', 'port_6_name': 'Port 6', 'port_count': 6, 'sw_version': '2.11', 'udp_serial': 'SWP6023002002810'}
+2025-08-06 22:05:29.833 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 📋 CONFIG ENTRY OPTIONS: Complete entry options = {}
+2025-08-06 22:05:29.833 DEBUG (MainThread) [custom_components.maxsmart.coordinator] 🔄 SETUP: Device config - MAC: bc:2b:d7:00:4d:1c, CPU ID: 30FFD2054253393045381143, Method: cpu_id
+2025-08-06 22:05:29.833 DEBUG (MainThread) [custom_components.maxsmart.messages] 🔌 CONNECTION TEST: Salon 2 - Testing 172.30.47.96
+2025-08-06 22:05:29.838 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 Error detection: Loop cancelled
+2025-08-06 22:05:29.904 DEBUG (MainThread) [custom_components.maxsmart.messages] ✅ CONNECTION TEST: Salon 2 - 172.30.47.96 responds
+2025-08-06 22:05:29.971 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 adaptive polling started successfully
+2025-08-06 22:05:29.971 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 polling callback registered
+2025-08-06 22:05:29.972 WARNING (MainThread) [custom_components.maxsmart.coordinator] Salon 2 using fallback polling
+2025-08-06 22:05:29.974 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 Error detection: Starting conservative error detection loop
+2025-08-06 22:05:29.979 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 recovered successfully
+2025-08-06 22:05:29.979 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Finished fetching MaxSmart Salon 2 data in 0.007 seconds (success: True)
+2025-08-06 22:05:29.979 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.979 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.979 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.979 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Created 7 switch entities for Salon 2 (6-port device, method: cpu_id)
+2025-08-06 22:05:29.980 WARNING (MainThread) [custom_components.maxsmart.coordinator] Salon 2 using fallback polling
+2025-08-06 22:05:29.984 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.984 DEBUG (MainThread) [custom_components.maxsmart.switch] Added 7/7 MaxSmart switch entities for Salon 2
+2025-08-06 22:05:29.984 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.984 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.984 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.985 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Created 7 sensor entities for Salon 2 (6-port device, method: cpu_id)
+2025-08-06 22:05:29.992 DEBUG (MainThread) [custom_components.maxsmart.entity_factory] Using stored port count: 6
+2025-08-06 22:05:29.992 DEBUG (MainThread) [custom_components.maxsmart.sensor] Added 7/7 MaxSmart sensor entities for Salon 2
+2025-08-06 22:05:29.995 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Salon 2 recovered successfully
+2025-08-06 22:05:29.996 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Manually updated MaxSmart Salon 2 data
+2025-08-06 22:05:30.004 DEBUG (MainThread) [custom_components.maxsmart.coordinator] Finished fetching MaxSmart Salon 2 data in 0.024 seconds (success: True)
+2025-08-06 22:05:30.007 DEBUG (MainThread) [custom_components.maxsmart] MaxSmart integration setup completed: Salon 2 (172.30.47.96) [ID: Cpu Id, CPU: 30FFD205..., MAC: bc:2b:d7:00:4d:1c]

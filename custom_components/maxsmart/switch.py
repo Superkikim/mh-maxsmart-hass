@@ -40,7 +40,7 @@ async def async_setup_entry(
     async_add_entities(entities, True)
     
     expected_count, _ = factory.get_entity_counts()
-    _LOGGER.info("Added %d/%d MaxSmart switch entities for %s", 
+    _LOGGER.debug("Added %d/%d MaxSmart switch entities for %s",
                 len(entities), expected_count, factory.device_name)
 
 class MaxSmartSwitchEntity(CoordinatorEntity[MaxSmartCoordinator], SwitchEntity):
@@ -144,9 +144,9 @@ class MaxSmartSwitchEntity(CoordinatorEntity[MaxSmartCoordinator], SwitchEntity)
     async def async_added_to_hass(self) -> None:
         """Handle entity added to hass."""
         await super().async_added_to_hass()
-        _LOGGER.debug("Added switch entity: %s (port %d)", self._attr_name, self._port_id)
+        # Removed verbose entity logging
 
     async def async_will_remove_from_hass(self) -> None:
         """Handle entity removal."""
         await super().async_will_remove_from_hass()
-        _LOGGER.debug("Removing switch entity: %s (port %d)", self._attr_name, self._port_id)
+        # Removed verbose entity logging

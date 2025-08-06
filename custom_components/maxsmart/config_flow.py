@@ -82,11 +82,11 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             )
                     else:
                         # All devices already configured
-                        _LOGGER.info("All discovered devices are already configured")
+                        _LOGGER.debug("All discovered devices are already configured")
                         return self.async_abort(reason="devices_configured")
                         
                 # No devices found - show manual form
-                _LOGGER.info("No unconfigured devices found, showing manual form")
+                _LOGGER.debug("No unconfigured devices found, showing manual form")
                 
             except Exception as err:
                 _LOGGER.warning("Enhanced discovery failed: %s", err)
@@ -444,40 +444,36 @@ class MaxSmartOptionsFlow(config_entries.OptionsFlow):
                 old_ip = self.config_entry.data.get("device_ip")
                 new_ip = ip_address
                 ip_changed = old_ip != new_ip
-                
-                # Update config entry data
-                new_data = {**self.config_entry.data}
-                new_data.update(user_input)
-                
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry,
-                    data=new_data
-                )
-                
+
+                # Test new IP if it changed
                 if ip_changed:
-                    _LOGGER.info("IP address changed for %s: %s → %s", 
-                               self.config_entry.data["device_name"], old_ip, new_ip)
-                    
-                    # Show notification about IP change
-                    try:
-                        await self.hass.services.async_call(
-                            "persistent_notification", 
-                            "create",
-                            {
-                                "title": "MaxSmart IP Address Updated",
-                                "message": f"Device '{self.config_entry.data['device_name']}' IP address updated to {new_ip}. "
-                                          f"The device will reconnect automatically.",
-                                "notification_id": f"maxsmart_ip_change_{self.config_entry.entry_id}"
-                            }
-                        )
-                    except Exception as err:
-                        _LOGGER.warning("Failed to show IP change notification: %s", err)
-                
-                # Update entity names if port names changed
-                await self._update_entity_names_if_changed(new_data)
-                
-                # Reload the integration to apply changes
-                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                    _LOGGER.debug("Testing connection to new IP %s for %s", new_ip, self.config_entry.data["device_name"])
+                    connection_test = await self._test_ip_connection(new_ip)
+
+                    if not connection_test:
+                        # IP doesn't respond - store data and ask for confirmation
+                        self._pending_user_input = user_input
+                        self._pending_new_ip = new_ip
+                        return await self.async_step_confirm_ip_change()
+
+                # IP test passed or no IP change - process normally
+                if ip_changed:
+                    return await self._process_ip_change(user_input)
+                else:
+                    # No IP change - just update other data
+                    new_data = {**self.config_entry.data}
+                    new_data.update(user_input)
+
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry,
+                        data=new_data
+                    )
+
+                    # Update entity names if port names changed
+                    await self._update_entity_names_if_changed(new_data)
+
+                    # Reload the integration to apply changes
+                    await self.hass.config_entries.async_reload(self.config_entry.entry_id)
                 
                 return self.async_create_entry(title="", data={})
 
@@ -566,7 +562,7 @@ class MaxSmartOptionsFlow(config_entries.OptionsFlow):
             if not port_name_changes and not device_name_changed:
                 return  # No name changes to apply
 
-            _LOGGER.info("Updating entity names for %s: %d port name changes, device name changed: %s",
+            _LOGGER.debug("Updating entity names for %s: %d port name changes, device name changed: %s",
                         old_data["device_name"], len(port_name_changes), device_name_changed)
 
             # Update port entities (switches and sensors)
@@ -628,3 +624,107 @@ class MaxSmartOptionsFlow(config_entries.OptionsFlow):
                 name="Total Power"  # Keep it simple, just "Total Power"
             )
             _LOGGER.debug("Updated total power sensor entity name: %s", total_power_entity_id)
+
+    async def async_step_confirm_ip_change(
+        self, user_input: Optional[Dict[str, Any]] = None
+    ) -> FlowResult:
+        """Confirm IP change when new IP doesn't respond."""
+        if user_input is None:
+            # Show confirmation form
+            new_ip = getattr(self, '_pending_new_ip', "Unknown")
+            return self.async_show_form(
+                step_id="confirm_ip_change",
+                data_schema=vol.Schema({
+                    vol.Required("confirm", default=False): bool,
+                }),
+                description_placeholders={
+                    "device_name": self.config_entry.data.get("device_name", "Unknown"),
+                    "new_ip": new_ip,
+                }
+            )
+
+        if user_input.get("confirm", False):
+            # User confirmed - proceed with IP change
+            return await self._process_ip_change(getattr(self, '_pending_user_input', {}))
+        else:
+            # User cancelled - return to main form
+            return await self.async_step_init()
+
+    async def _test_ip_connection(self, ip_address: str) -> bool:
+        """Test if IP address responds to MaxSmart connection."""
+        try:
+            from maxsmart import MaxSmartDevice
+
+            _LOGGER.debug("Testing connection to IP %s", ip_address)
+            test_device = MaxSmartDevice(ip_address)
+            await test_device.initialize_device()
+            await test_device.close()
+
+            _LOGGER.debug("✅ IP TEST: %s responds correctly", ip_address)
+            return True
+
+        except Exception as err:
+            _LOGGER.warning("❌ IP TEST: %s doesn't respond: %s", ip_address, err)
+            return False
+
+    async def _process_ip_change(self, user_input: Dict[str, Any]) -> FlowResult:
+        """Process the IP change after validation/confirmation."""
+        # Get old IP BEFORE updating entry
+        old_ip = self.config_entry.data.get("device_ip")
+        new_ip = user_input["device_ip"].strip()
+
+        # Only proceed if IP actually changed
+        if old_ip == new_ip:
+            _LOGGER.debug("IP address unchanged for %s: %s",
+                         self.config_entry.data["device_name"], old_ip)
+            # No IP change - just update other data
+            new_data = {**self.config_entry.data}
+            new_data.update(user_input)
+
+            self.hass.config_entries.async_update_entry(
+                self.config_entry,
+                data=new_data
+            )
+
+            # Update entity names if port names changed
+            await self._update_entity_names_if_changed(new_data)
+
+            # Reload the integration to apply changes
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+            return self.async_create_entry(title="", data={})
+
+        # Update config entry data
+        new_data = {**self.config_entry.data}
+        new_data.update(user_input)
+
+        self.hass.config_entries.async_update_entry(
+            self.config_entry,
+            data=new_data
+        )
+
+        _LOGGER.info("IP address changed for %s: %s → %s",
+                   self.config_entry.data["device_name"], old_ip, new_ip)
+
+        # Show notification about IP change
+        try:
+            await self.hass.services.async_call(
+                "persistent_notification",
+                "create",
+                {
+                    "title": "MaxSmart IP Address Updated",
+                    "message": f"Device '{self.config_entry.data['device_name']}' IP address updated to {new_ip}. "
+                              f"The device will reconnect automatically.",
+                    "notification_id": f"maxsmart_ip_change_{self.config_entry.entry_id}"
+                }
+            )
+        except Exception as err:
+            _LOGGER.warning("Failed to show IP change notification: %s", err)
+
+        # Update entity names if port names changed
+        await self._update_entity_names_if_changed(new_data)
+
+        # Reload the integration to apply changes
+        await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+        return self.async_create_entry(title="", data={})
