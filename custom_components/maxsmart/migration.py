@@ -325,7 +325,7 @@ class MaxSmartMigrationManager:
         # DEBUG: Log what we extracted from device
         _LOGGER.debug("🔧 MIGRATION BUILD: Device data = %s", device)
         _LOGGER.debug("🔧 MIGRATION BUILD: Extracted MAC = '%s' from device.get('mac')", device.get("mac", ""))
-        _LOGGER.debug("🔧 MIGRATION BUILD: Enhanced data MAC = '%s'", enhanced_data.get("mac_address", ""))
+        _LOGGER.debug("🔧 MIGRATION BUILD: Enhanced data MAC = '%s'", enhanced_data.get("mac", ""))
         
         # Preserve port names from old configuration
         self._preserve_port_names(old_data, enhanced_data, device)
@@ -408,11 +408,11 @@ class MaxSmartMigrationManager:
     def _determine_identification_method(self, device: Dict[str, Any]) -> str:
         """Determine which identification method was used."""
         if device.get("cpuid"):
-            return "cpu_id"
-        elif device.get("mac"):  # Fixed: use "mac" key from discovery
-            return "mac_address"
+            return "cpuid"
+        elif device.get("mac"):
+            return "mac"
         elif device.get("sn"):
-            return "udp_serial"
+            return "sn"
         else:
             return "ip_fallback"
 
@@ -436,6 +436,14 @@ class MaxSmartMigrationManager:
             _LOGGER.debug("Entry needs migration: missing expected fields %s", missing_expected)
             return True
 
+        # Check for obsolete 2025.7.1 fields that need renaming
+        obsolete_fields = ["udp_serial", "cpu_id", "mac_address"]
+        has_obsolete = any(field in data for field in obsolete_fields)
+        if has_obsolete:
+            _LOGGER.debug("Entry needs migration: has obsolete fields %s",
+                         [field for field in obsolete_fields if field in data])
+            return True
+
         _LOGGER.debug("Entry format is correct - no migration needed")
         return False
         
@@ -445,7 +453,8 @@ class MaxSmartMigrationManager:
         """Discover current devices with enhanced identification."""
         try:
             _LOGGER.debug("🔍 MIGRATION DISCOVERY: Starting device discovery for migration")
-            devices = await MaxSmartDiscovery.discover_maxsmart(enhance_with_hardware_ids=True)
+            # maxsmart 2.0.5+ always enhances with hardware IDs - no parameter needed
+            devices = await MaxSmartDiscovery.discover_maxsmart()
             _LOGGER.debug("🔍 MIGRATION DISCOVERY: Found %d devices", len(devices))
 
             # DEBUG: Log device count only
@@ -464,7 +473,7 @@ class MaxSmartMigrationManager:
         try:
             temp_device = MaxSmartDevice(ip_address)
             await temp_device.initialize_device()
-            
+
             # Get hardware identifiers
             hw_ids = await temp_device.get_device_identifiers()
 
@@ -482,10 +491,10 @@ class MaxSmartMigrationManager:
                 "mac": mac_address,  # Clean MAC only
                 "server": "",  # Not available via direct query
             }
-            
+
             await temp_device.close()
             return device_info
-            
+
         except Exception:
             return None
         
@@ -533,11 +542,11 @@ class MaxSmartMigrationManager:
             
         # Check if new hardware identifiers were added
         new_identifiers = []
-        if new_data.get("cpu_id"):
+        if new_data.get("cpuid"):
             new_identifiers.append("CPU ID")
-        if new_data.get("mac_address"):
+        if new_data.get("mac"):
             new_identifiers.append("MAC Address")
-            
+
         if new_identifiers:
             changes["added_identifiers"] = new_identifiers
             

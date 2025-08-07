@@ -50,7 +50,16 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         self.config_entry = config_entry
         self.device_name = config_entry.data["device_name"]
         self.device_ip = config_entry.data["device_ip"]
-        self.mac_address = config_entry.data.get("mac_address", "")
+        # Support both old (mac_address) and new (mac) keys for migration compatibility
+        self.mac_address = config_entry.data.get("mac", config_entry.data.get("mac_address", ""))
+
+        # DEBUG: Log config entry data
+        _LOGGER.debug("🔧 COORDINATOR INIT: %s - Config data keys: %s",
+                     self.device_name, list(config_entry.data.keys()))
+        _LOGGER.debug("🔧 COORDINATOR INIT: %s - MAC from config: '%s'",
+                     self.device_name, self.mac_address)
+        _LOGGER.debug("🔧 COORDINATOR INIT: %s - Full config data: %s",
+                     self.device_name, dict(config_entry.data))
         
         # Device and state
         self.device: Optional[MaxSmartDevice] = None
@@ -193,8 +202,13 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
             data = await self.device.get_data()
             if data:
                 self.error_tracker.record_successful_poll()
+                # DEBUG: Log data structure
+                _LOGGER.debug("🔧 UPDATE DATA: %s - Received data: %s",
+                             self.device_name, data)
                 return data
             else:
+                _LOGGER.warning("🔧 UPDATE DATA: %s - No data received from device",
+                               self.device_name)
                 raise UpdateFailed("No data received from device")
                 
         except (MaxSmartConnectionError, DeviceTimeoutError, CommandError) as err:
@@ -233,7 +247,8 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
             
             self.device_name = self.config_entry.data["device_name"]
             self.device_ip = self.config_entry.data["device_ip"]
-            self.mac_address = self.config_entry.data.get("mac_address", "")
+            # Support both old (mac_address) and new (mac) keys for migration compatibility
+            self.mac_address = self.config_entry.data.get("mac", self.config_entry.data.get("mac_address", ""))
             
             # Check what changed
             device_name_changed = old_device_name != self.device_name

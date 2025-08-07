@@ -428,9 +428,9 @@ class IPRecoveryManager:
                     self.coordinator.mac_address = device_mac
                     self.coordinator.ip_recovery.mac_address = device_mac
 
-                    # Update config entry
+                    # Update config entry with new key format
                     new_data = dict(self.config_entry.data)
-                    new_data["mac_address"] = device_mac
+                    new_data["mac"] = device_mac  # Use new key format
 
                     self.hass.config_entries.async_update_entry(
                         self.config_entry,

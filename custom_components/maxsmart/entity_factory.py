@@ -45,12 +45,14 @@ class MaxSmartEntityFactory:
     @property
     def cpu_id(self) -> str:
         """Get CPU ID if available."""
-        return self.device_data.get("cpu_id", "")
+        # Support both old (cpu_id) and new (cpuid) keys for migration compatibility
+        return self.device_data.get("cpuid", self.device_data.get("cpu_id", ""))
     
     @property
     def mac_address(self) -> str:
         """Get MAC address if available."""
-        return self.device_data.get("mac_address", "")
+        # Support both old (mac_address) and new (mac) keys for migration compatibility
+        return self.device_data.get("mac", self.device_data.get("mac_address", ""))
     
     @property
     def identification_method(self) -> str:
@@ -366,7 +368,7 @@ class MaxSmartEntityFactory:
             
             # Hardware information
             "cpu_id": self.cpu_id,
-            "mac_address": self.mac_address,
+            "mac_address": self.mac_address,  # This uses the property which handles both keys
             "udp_serial": self.device_data.get("udp_serial", ""),
             "identification_method": self.identification_method,
             
