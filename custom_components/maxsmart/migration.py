@@ -51,17 +51,13 @@ class MaxSmartMigrationManager:
             result = await self._migrate_single_entry(entry, current_devices)
             migration_summary["details"].append(result)
             
-            # Update counters
-            if result["status"] == "legacy_migrated":
+            # Update counters (simplified)
+            if result["status"] == "migrated_successfully":
                 migration_summary["migrated_successfully"] += 1
-                migration_summary["legacy_entries"] += 1
             elif result["status"] == "migration_failed":
                 migration_summary["migration_failed"] += 1
-                migration_summary["legacy_entries"] += 1
-            elif result["status"] == "already_migrated":
+            elif result["status"] == "no_migration_needed":
                 migration_summary["already_migrated"] += 1
-            elif result["status"] == "legacy_detected":
-                migration_summary["legacy_entries"] += 1
                 
         # Log migration summary
         self._log_migration_summary(migration_summary)
@@ -105,8 +101,8 @@ class MaxSmartMigrationManager:
             
             if entry_mac:
                 for device in current_devices:
-                    # Check both mac and pclmac fields (fixed: use "mac" from discovery)
-                    device_mac = device.get("mac") or device.get("pclmac")
+                    # Use only "mac" field from maxsmart 2.0.5 format
+                    device_mac = device.get("mac")
 
                     if device_mac and self._normalize_mac(entry_mac) == self._normalize_mac(device_mac):
                         _LOGGER.debug("Found MAC match: %s (%s -> %s)",
@@ -240,31 +236,14 @@ class MaxSmartMigrationManager:
         }
         
         try:
-            # Check if already migrated
-            if self._is_already_migrated(entry):
-                result["status"] = "already_migrated"
-                _LOGGER.debug("Entry %s already migrated", entry.title)
+            # Simple check: does entry need migration?
+            if not self._needs_migration(entry):
+                result["status"] = "no_migration_needed"
+                _LOGGER.debug("Entry %s format is correct - no migration needed", entry.title)
                 return result
 
-            # Log migration scenario for debugging
-            has_cpu_id = bool(entry.data.get("cpu_id"))
-            has_mac_address = bool(entry.data.get("mac_address"))
-            migration_version = entry.data.get("migration", "")
-
-            if migration_version == "2025.7.1":
-                _LOGGER.debug("Migration scenario: 2025.7.1 → 2025.8.1 (fixing empty MAC address)")
-            elif not migration_version:
-                _LOGGER.debug("Migration scenario: Legacy → 2025.8.1 (full migration)")
-            else:
-                _LOGGER.debug("Migration scenario: %s → 2025.8.1 (upgrade)", migration_version)
-                
-            # Detect legacy format
-            if not self._is_legacy_entry(entry):
-                result["status"] = "not_legacy"
-                return result
-                
-            result["status"] = "legacy_detected"
-            _LOGGER.debug("Migrating legacy entry: %s (%s)", entry.title, entry.data.get("device_ip"))
+            result["status"] = "migration_needed"
+            _LOGGER.debug("Migrating entry: %s (%s)", entry.title, entry.data.get("device_ip", "unknown"))
             
             # Find matching device using robust matching
             matched_device = await self._find_matching_device(entry, current_devices)
@@ -297,7 +276,7 @@ class MaxSmartMigrationManager:
                 # Explicitly NOT setting unique_id = preserves original
             )
             
-            result["status"] = "legacy_migrated"
+            result["status"] = "migrated_successfully"
             result["changes"] = self._calculate_changes(entry.data, enhanced_data)
             
             _LOGGER.debug("Successfully migrated %s: preserved unique_id %s, method=%s",
@@ -317,41 +296,30 @@ class MaxSmartMigrationManager:
         # 🔑 PRESERVE original unique_id - this is crucial to prevent duplication
         original_unique_id = entry.unique_id or old_data.get("device_unique_id", "")
         
-        # Generate best available unique identifier for reference only
-        best_unique_id = self._generate_new_unique_id(device)
+        # No need for complex identification logic in 2.0.5
         
-        # Determine identification method
-        identification_method = self._determine_identification_method(device)
-        
-        # Build enhanced data structure
+        # Build clean enhanced data structure (maxsmart 2.0.5 format)
         enhanced_data = {
-            # Preserve existing configuration
-            "device_name": old_data.get("device_name", device.get("name", "MaxSmart Device")),
-            "device_ip": device["ip"],  # Use current IP (may have changed)
-
-            # 🔑 KEEP original unique_id to prevent device duplication
+            # 🔑 PRESERVE original unique_id to prevent device duplication
             "device_unique_id": original_unique_id,
 
-            # Add enhanced identification as metadata
-            "best_unique_id": best_unique_id,
-            "identification_method": identification_method,
+            # User configuration (preserve existing)
+            "device_name": old_data.get("device_name", device.get("name", "MaxSmart Device")),
 
-            # Hardware identifiers (enrichment)
-            "cpu_id": device.get("cpuid", ""),
-            "mac_address": device.get("mac", ""),  # Fixed: use "mac" key from discovery
-            "udp_serial": device.get("sn", ""),
-            "pclmac": device.get("pclmac", ""),
+            # Essential maxsmart 2.0.5 data (clean format)
+            "sn": device.get("sn", ""),
+            "name": device.get("name", ""),
+            "pname": device.get("pname", []),
+            "device_ip": device["ip"],  # Use current IP (may have changed)
+            "ver": device.get("ver", "Unknown"),
+            "cpuid": device.get("cpuid", ""),
+            "mac": device.get("mac", ""),
+            "server": device.get("server", ""),
 
-            # Device info
-            "sw_version": device.get("ver", "Unknown"),
-            "firmware_version": device.get("ver", "Unknown"),
+            # Device configuration
             "port_count": self._determine_port_count(device, old_data),
 
-            # Migration metadata
-            "migration": "2025.8.1",  # Clear migration version
-            "migration_timestamp": datetime.datetime.utcnow().isoformat(),
-            "original_unique_id": original_unique_id,
-            "hardware_enhanced": True,
+            # No migration metadata needed - keep it simple
         }
 
         # DEBUG: Log what we extracted from device
@@ -448,35 +416,30 @@ class MaxSmartMigrationManager:
         else:
             return "ip_fallback"
 
-    def _is_already_migrated(self, entry: ConfigEntry) -> bool:
-        """Check if config entry is already migrated to 2025.8.1."""
+    def _needs_migration(self, entry: ConfigEntry) -> bool:
+        """Check if config entry needs migration - simple format check."""
         data = entry.data
 
-        # Check migration version - simple and explicit
-        migration_version = data.get("migration", "")
+        # Expected 2025.8.1 format: device_ip, sn, mac, cpuid, ver, etc.
+        required_fields = ["device_ip", "device_unique_id", "device_name"]
+        expected_fields = ["sn", "mac", "cpuid", "ver"]
 
-        if migration_version == "2025.8.1":
-            _LOGGER.debug("Entry already migrated to 2025.8.1")
+        # Check required fields
+        for field in required_fields:
+            if field not in data:
+                _LOGGER.debug("Entry needs migration: missing required field '%s'", field)
+                return True
+
+        # Check expected 2025.8.1 fields
+        missing_expected = [field for field in expected_fields if field not in data]
+        if missing_expected:
+            _LOGGER.debug("Entry needs migration: missing expected fields %s", missing_expected)
             return True
 
-        _LOGGER.debug("Entry needs migration to 2025.8.1 (current: %s)", migration_version or "none")
+        _LOGGER.debug("Entry format is correct - no migration needed")
         return False
         
-    def _is_legacy_entry(self, entry: ConfigEntry) -> bool:
-        """Check if config entry is in legacy format."""
-        data = entry.data
-        
-        # Legacy format characteristics
-        has_legacy_structure = (
-            "device_ip" in data and 
-            "device_name" in data and
-            "device_unique_id" in data
-        )
-        
-        # Not already enhanced
-        not_enhanced = not self._is_already_migrated(entry)
-        
-        return has_legacy_structure and not_enhanced
+    # Supprimé - plus besoin de cette fonction complexe
 
     async def _discover_current_devices(self) -> List[Dict[str, Any]]:
         """Discover current devices with enhanced identification."""
@@ -504,11 +467,11 @@ class MaxSmartMigrationManager:
             
             # Get hardware identifiers
             hw_ids = await temp_device.get_device_identifiers()
-            
+
             # Try to get MAC via ARP
             mac_address = await temp_device.get_mac_address_via_arp()
-            
-            # Build device info similar to discovery
+
+            # Build device info in maxsmart 2.0.5 format
             device_info = {
                 "ip": ip_address,
                 "name": getattr(temp_device, 'name', ''),
@@ -516,9 +479,8 @@ class MaxSmartMigrationManager:
                 "ver": getattr(temp_device, 'version', ''),
                 "pname": getattr(temp_device, 'port_names', []),
                 "cpuid": hw_ids.get("cpuid", ""),
-                "pclmac": hw_ids.get("pclmac", ""),
-                "mac": mac_address or hw_ids.get("pclmac", ""),  # Fixed: use "mac" key like discovery
-                "hw_ids": hw_ids,
+                "mac": mac_address,  # Clean MAC only
+                "server": "",  # Not available via direct query
             }
             
             await temp_device.close()

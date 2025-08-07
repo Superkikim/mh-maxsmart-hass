@@ -25,10 +25,8 @@ async def async_discover_devices(enhance_with_hardware: bool = True) -> List[Dic
         _LOGGER.debug("🔍 DISCOVERY: Starting MaxSmart device discovery (enhanced=%s)", enhance_with_hardware)
         
         # Use maxsmart library directly - no custom logic!
-        if enhance_with_hardware:
-            devices = await MaxSmartDiscovery.discover_maxsmart(enhance_with_hardware_ids=True)
-        else:
-            devices = await MaxSmartDiscovery.discover_maxsmart()
+        # Note: maxsmart 2.0.5+ always enhances with hardware IDs
+        devices = await MaxSmartDiscovery.discover_maxsmart()
         
         if devices:
             _LOGGER.debug("🔍 DISCOVERY: Found %d MaxSmart device(s)", len(devices))
@@ -65,10 +63,8 @@ async def async_discover_device_by_ip(ip_address: str, enhance_with_hardware: bo
         _LOGGER.debug("🔍 DISCOVERY: Discovering MaxSmart device at %s (enhanced=%s)", ip_address, enhance_with_hardware)
         
         # Use maxsmart library directly - no custom logic!
-        if enhance_with_hardware:
-            devices = await MaxSmartDiscovery.discover_maxsmart(ip=ip_address, enhance_with_hardware_ids=True)
-        else:
-            devices = await MaxSmartDiscovery.discover_maxsmart(ip=ip_address)
+        # Note: maxsmart 2.0.5+ always enhances with hardware IDs
+        devices = await MaxSmartDiscovery.discover_maxsmart(ip=ip_address)
         
         if devices:
             device = devices[0]  # Should only be one for unicast

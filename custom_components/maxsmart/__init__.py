@@ -19,18 +19,14 @@ PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up MaxSmart from a config entry with migration support."""
-    device_name = entry.data.get("device_name", "Unknown")
-    device_ip = entry.data["device_ip"]
-    
-    _LOGGER.debug("Setting up MaxSmart integration: %s (%s)", device_name, device_ip)
-    
-    # Check for and perform migration ONLY ONCE for all entries
+
+    # Check for and perform migration FIRST - before accessing entry data
     if not hass.data.get(DOMAIN, {}).get('_migration_checked', False):
         try:
             _LOGGER.debug("🔄 MIGRATION: Performing one-time MaxSmart migration check")
             migration_summary = await async_migrate_config_entries(hass)
             _LOGGER.debug("🔄 MIGRATION: Migration completed with summary: %s", migration_summary)
-            
+
             # Mark migration as completed and store summary
             hass.data.setdefault(DOMAIN, {})
             hass.data[DOMAIN]['_migration_checked'] = True
@@ -72,7 +68,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "total_entries": 0,
                 "error": str(err)
             }
-    
+
+    # NOW access entry data after migration is complete
+    device_name = entry.data.get("device_name", "Unknown")
+    device_ip = entry.data["device_ip"]
+
+    _LOGGER.debug("Setting up MaxSmart integration: %s (%s)", device_name, device_ip)
+
     try:
         # Initialize coordinator with config entry
         coordinator = MaxSmartCoordinator(hass, entry)
