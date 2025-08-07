@@ -8,6 +8,6 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/superkikim/mh-maxsmart-hass/issues",
   "loggers": ["maxsmart"],
-  "requirements": ["maxsmart=2.0.5"],
+  "requirements": ["maxsmart==2.0.5"],
   "version": "2025.8.1"
 }
