@@ -72,10 +72,10 @@ If this integration makes your life easier, consider supporting its development:
 **Now available in the official HACS catalog!**
 
 1. Open **HACS** in Home Assistant
-2. Go to **Integrations**
-3. Search for **"MaxSmart"** or **"Max Hauri"**
-4. Click **Install**
-5. Restart Home Assistant
+2. Search for **"MaxSmart"**
+4. Select the **Max Hauri Maxsmart (revogi)** integration
+5. Read the details and click "Download"
+6. Restart Home Assistant
 
 ### Option 2: Manual Installation
 1. Download the latest release from [GitHub](https://github.com/superkikim/mh-maxsmart-hass/releases)
@@ -87,21 +87,20 @@ If this integration makes your life easier, consider supporting its development:
 ### 1. Add Integration
 1. Go to **Settings** → **Devices & Services**
 2. Click **Add Integration**
-3. Search for **"MaxSmart (Revogi)"**
+3. Search for **"Max Hauri Maxsmart"**
 4. Follow the setup wizard
 
 ### 2. Device Discovery
-The integration will **automatically find** your MaxSmart/Revogi/CoCoSo devices on the network:
+The integration will **automatically find** your MaxSmart/Revogi/CoCoSo devices on the network. Once found, each device will appear as a separate object with a ADD button.
 
-- ✅ **Found devices?** Great! They'll be added automatically
-- ❌ **No devices found?** Enter your device IP address manually
+Click ADD on each device.
 
 ### 3. Customize Names
 During setup (and anytime after via ⚙️ gear icon), you can customize:
 - **Device name** (e.g., "Living Room Power Strip")
 - **Port names** (e.g., "TV", "Lamp", "Router")
 
-**🎯 Pro Tip**: Names are managed entirely in Home Assistant - completely independent from device settings!
+**🎯 Pro Tip**: Names are managed entirely in Home Assistant - completely independent from device and cloud settings! If names are available on the device, they will be pre-filled.
 
 ## 🎛️ What You'll Get
 
@@ -128,8 +127,8 @@ During setup (and anytime after via ⚙️ gear icon), you can customize:
 - **Real-time Updates** - Live consumption every 5 seconds (vs 30 seconds in older versions!)
 - **Individual Tracking** - Monitor each port separately
 - **Total Power** - Overall consumption (6-port devices)
-- **Smart Units** - Automatic watt/kilowatt conversion
-- **Historical Data** - Track consumption over time
+- **Smart Units** - Automatic millwatt=>watt conversion
+- **Historical Data** - Track consumption over time within Home Assistant
 
 ### 🛠️ Management
 - **🏷️ Complete Name Control** - Manage all names in Home Assistant, independent from devices
@@ -162,11 +161,6 @@ If you're upgrading from an older version, the integration will:
 2. **🔧 Enhance Device Info** - Adds hardware identification
 3. **🧹 Clean Up Entities** - Removes incorrect entities (1-port devices)
 4. **💾 Preserve Settings** - Keeps your custom names and configuration
-5. **✅ Show Notification** - Confirms successful migration
-
-### Migration Notification
-After upgrading, you'll see a notification confirming the migration:
-> "4 MaxSmart devices have been migrated. You can customize device and port names by clicking the gear icon of each device."
 
 ### What's Preserved?
 - ✅ **Device names** you've customized
@@ -188,7 +182,7 @@ After upgrading, you'll see a notification confirming the migration:
 **Solutions**:
 - Ensure device is powered on and connected to your network
 - Try entering the IP address manually
-- Check that Home Assistant and device are on the same network
+- Check that Home Assistant and device are on the same level 2 network (same subnet, and same VLAN)
 
 #### Connection Errors
 **Problem**: Device becomes unavailable
@@ -206,7 +200,7 @@ After upgrading, you'll see a notification confirming the migration:
 
 ### Getting Help
 1. **Check Logs** - Look in Home Assistant logs for error details
-2. **GitHub Issues** - Report problems at [our issue tracker](https://github.com/superkikim/mh-maxsmart-hass/issues)
+2. **GitHub Issues** - Report problems at [our issue tracker](https://github.com/Superkikim/mh-maxsmart-hass/issues)
 3. **Provide Details** - Include device model, firmware version, and error messages
 
 ## 📱 Entity Naming
@@ -252,7 +246,7 @@ Device: "Coffee Maker Plug"
 - **Other versions** - May work but not officially tested
 
 ### End of Life Notice
-MaxSmart products are **discontinued** by Max Hauri. This integration provides local control as cloud services may be discontinued.
+MaxSmart and many other revogy based products are **discontinued**. This integration provides local control as cloud services may be discontinued.
 
 ## 🤝 Contributing
 
