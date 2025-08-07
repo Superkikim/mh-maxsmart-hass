@@ -1,6 +1,6 @@
 {
   "domain": "maxsmart",
-  "name": "Max Hauri Maxsmart",
+  "name": "Max Hauri Maxsmart (revogi)",
   "codeowners": ["@Superkikim"],
   "config_flow": true,
   "dependencies": [],
