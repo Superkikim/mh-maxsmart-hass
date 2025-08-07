@@ -2,7 +2,7 @@
 
 [![Version](https://img.shields.io/badge/Version-2025.8.1-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.6%2B-green.svg)](https://www.home-assistant.io/)
-[![HACS](https://img.shields.io/badge/HACS-Compatible-orange.svg)](https://hacs.xyz/)
+[![HACS](https://img.shields.io/badge/HACS-Official-brightgreen.svg)](https://hacs.xyz/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Maintenance](https://img.shields.io/badge/Maintained-Yes-brightgreen.svg)](https://github.com/superkikim/mh-maxsmart-hass)
 
@@ -68,24 +68,16 @@ If this integration makes your life easier, consider supporting its development:
 
 ## 🚀 Installation
 
-### Option 1: HACS Custom Repository (Recommended)
-*While we work on getting into the official HACS catalog*
+### Option 1: HACS Official (Recommended) ✅
+**Now available in the official HACS catalog!**
 
-1. Open **HACS** in Home Assistant
-2. Go to **Integrations** → **⋮** → **Custom repositories**
-3. Add repository: `https://github.com/superkikim/mh-maxsmart-hass`
-4. Category: **Integration**
-5. Search for **"MaxSmart"** and install
-6. Restart Home Assistant
-
-### Option 2: HACS Official (Coming Soon)
 1. Open **HACS** in Home Assistant
 2. Go to **Integrations**
-3. Search for **"MaxSmart"**
+3. Search for **"MaxSmart"** or **"Max Hauri"**
 4. Click **Install**
 5. Restart Home Assistant
 
-### Option 3: Manual Installation
+### Option 2: Manual Installation
 1. Download the latest release from [GitHub](https://github.com/superkikim/mh-maxsmart-hass/releases)
 2. Extract to `config/custom_components/maxsmart/`
 3. Restart Home Assistant
