@@ -306,11 +306,7 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             
         if device.get("sn"):
             lines.append(f"Serial: {device['sn']}")
-            
-        # Identification method
-        method = device.get("identification_method", "unknown")
-        lines.append(f"ID Method: {method.upper()}")
-        
+
         return "\n".join(lines)
 
     def _validate_names(self, names: Dict[str, Any]) -> Dict[str, str]:
