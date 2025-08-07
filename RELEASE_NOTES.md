@@ -1,33 +1,53 @@
+# 🚀 MaxSmart Integration v2025.8.1
+
+[![Version](https://img.shields.io/badge/Version-2025.8.1-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases/tag/2025.8.1)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.6%2B-green.svg)](https://www.home-assistant.io/)
+[![Python](https://img.shields.io/badge/Python-3.7%2B-blue.svg)](https://www.python.org/)
+
+**User Experience focused release** with manual IP configuration, automatic IP change detection, and enhanced multilingual support. This version prioritizes user-friendly features while maintaining rock-solid reliability.
+
+## ✨ What's New in v2025.8.1
+
+### 🎯 Major User Experience Improvements
+- **🌐 Manual IP Configuration** - Add IP field in device settings with real-time connection validation
+- **🔄 Automatic IP Change Detection** - Seamless reconfiguration when device IP changes (i.e. DHCP lease renewal)
+- **📝 Clearer Log Messages** - Simplified, actionable messages with clean 3-message cycle format
+- **🌍 Enhanced Language Support** - Added Spanish and Italian translations (5 languages total: EN, FR, DE, ES, IT)
+
+### 🔧 Technical Improvements
+- **📱 Improved Device Information** - Cleaner device details display with essential info (IP, Serial Number, MAC address)
+- **🛡️ Enhanced Error Handling** - Better error management with network cascade detection to reduce log noise
+- **⚡ Silent Migration** - Seamless upgrade from existing devices with zero user intervention required
+- **🔧 Simplified Configuration** - Streamlined config entries and cleaned up configuration forms
+
+### 🐛 Bug Fixes
+- Fixed device name placeholder in IP change confirmation dialogs (all languages)
+- Removed unnecessary "ID Method" field from device configuration forms
+- Improved migration compatibility between versions
+- Enhanced MAC address handling for better device identification
+
+---
+
 # 🚀 MaxSmart Integration v2025.7.1
 
 [![Version](https://img.shields.io/badge/Version-2025.7.1-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases/tag/2025.7.1)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.6%2B-green.svg)](https://www.home-assistant.io/)
 [![Python](https://img.shields.io/badge/Python-3.7%2B-blue.svg)](https://www.python.org/)
 
-**Major release** with automatic migration, enhanced reliability, and smart device detection. This version completely overhauls the integration architecture while preserving all your existing configurations.
+**Major overhaul release** with complete architecture refactoring, Home Assistant native name management, and enhanced hardware identification. This version completely rebuilds the integration while preserving all your existing configurations.
 
-## ✨ What's New
+## ✨ What's New in v2025.7.1
 
-### 🏷️ Revolutionary Name Management
-- **Home Assistant Native** - All device and port names managed entirely within HA
-- **Device Independence** - No more reliance on device-stored names
-- **Instant Updates** - Name changes apply immediately without device communication
-- **Perfect Migration** - Existing custom names preserved during upgrade
-- **Unlimited Characters** - No device firmware name length restrictions
+### 🎯 Major User Experience Improvements
+- **🏷️ Home Assistant Name Management** - Device and port names managed entirely in HA, editable on-the-fly
+- **⚡ Near Real-time Consumption** - Live power monitoring every 5 seconds for responsive automation
+- **🔄 In-place Migration** - Seamless upgrade from older versions with zero downtime
 
-### ⚡ Real-Time Performance Boost
-- **5-Second Updates** - Live power monitoring every 5 seconds (vs 30 seconds before!)
-- **Instant Response** - Immediate feedback on device state changes
-- **Adaptive Polling** - Smart polling system that mimics official app behavior
-- **Burst Mode** - 2-second updates after commands for instant confirmation
-- **Live Dashboard** - Real-time consumption tracking for automation triggers
-
-### 🔄 Bulletproof Migration System
-- **Zero-Downtime Upgrades** - Seamless migration from previous versions
-- **Hardware Fingerprinting** - Uses CPU ID and MAC address for rock-solid device tracking
-- **Intelligent Entity Cleanup** - Automatically removes incorrect entities
-- **Configuration Preservation** - All your custom names and settings preserved
-- **Clear Feedback** - Migration notifications confirm successful upgrade
+### 🔧 Technical Improvements
+- **🛡️ Enhanced Hardware Identification** - CPU ID, MAC address, and serial number tracking for rock-solid device identification
+- **📊 Improved Discovery System** - Automatic hardware ID retrieval and device fingerprinting
+- **🏗️ Modular Architecture** - Separated coordinator, entity factory, and migration systems for better maintainability
+- **⚡ Adaptive Polling System** - Smart polling that mimics official app behavior with burst mode after commands
 
 ### ⚡ Enhanced Power Monitoring
 - **Real-Time Data** - Live power consumption updates every 5 seconds

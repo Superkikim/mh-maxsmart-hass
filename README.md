@@ -6,17 +6,51 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Maintenance](https://img.shields.io/badge/Maintained-Yes-brightgreen.svg)](https://github.com/superkikim/mh-maxsmart-hass)
 
-Control your **Max Hauri MaxSmart** smart power strips and plugs directly from Home Assistant! No cloud required - everything works locally on your network.
+Control your **Max Hauri MaxSmart** smart power strips and plugs directly from Home Assistant! **No cloud required** - everything works locally on your network.
 
 These are **REVOGI-based devices**. Other REVOGI-based devices might work as well. Feel free to test and come back to me for any feedback. We may work together to make them work.
 
-## 🎯 What's New in v2025.8.1
+> **💡 Future-Proof Your Investment:** These devices are EOL (End of Life) with cloud services scheduled for decommissioning. This integration provides a **cloud-free solution** to keep your perfectly functional hardware running indefinitely, independent of manufacturer support.
 
-- **🏷️ Home Assistant Name Management** - Device and port names managed entirely in HA, independent from device settings!
-- **⚡ Real-time Updates** - Live monitoring every 5 seconds (vs 30 seconds before)
-- **🔄 Automatic Migration** - Seamless upgrade from older versions with zero downtime
-- **🧠 Smart Device Detection** - Automatically identifies 1-port vs 6-port devices
-- **🛡️ Rock-Solid Reliability** - Complete error handling overhaul with clear messages and automatic recovery
+## ☕ Support My Work
+
+If this integration makes your life easier, consider supporting its development:
+
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/nexusplugins)
+
+**Suggested amounts:**
+
+- **$5** - Fuel my coding sessions with caffeine ☕
+- **$25** - Power my AI development tools 🤖
+- **$75** - Supercharge my entire dev toolkit 🚀
+
+*Your support helps me continue building useful tools and explore new ways of making your life easier.*
+
+## ✨ What's New in v2025.8.1 - User Experience Improvements
+
+**🎯 Major UX Enhancements:**
+- **🌐 Manual IP Configuration** - Add IP field in device settings with connection validation
+- **🔄 Automatic IP Change Detection** - Seamless reconfiguration when device IP changes (i.e. DHCP lease renewal)
+- **📝 Clearer Log Messages** - Simplified, actionable messages with 3-message cycle format
+- **🌍 Enhanced Language Support** - Added Spanish and Italian translations (5 languages total)
+
+**🔧 Technical Improvements:**
+- **📱 Improved Device Information** - Cleaner device details with essential info (IP, SN, MAC)
+- **🛡️ Enhanced Error Handling** - Better error management and network cascade detection
+- **⚡ Silent Migration** - Seamless upgrade from existing devices with zero user intervention
+- **🔧 Simplified Configuration** - Streamlined config entries and form cleanup
+
+## 📋 What's New in v2025.7.1 - Major Overhaul
+
+**🎯 Major UX Enhancements:**
+- **🏷️ Home Assistant Name Management** - Device and port names managed entirely in HA, editable on-the-fly
+- **⚡ Near Real-time Consumption** - Live power monitoring every 5 seconds for responsive automation
+- **🔄 In-place Migration** - Seamless upgrade from older versions with zero downtime
+
+**🔧 Technical Improvements:**
+- **🛡️ Enhanced Hardware Identification** - CPU ID, MAC address, and serial number tracking
+- **📊 Improved Discovery System** - Automatic hardware ID retrieval and device fingerprinting
+- **🏗️ Modular Architecture** - Separated coordinator, entity factory, and migration systems
 
 ## 📱 Supported Devices
 
@@ -29,13 +63,6 @@ These are **REVOGI-based devices**. Other REVOGI-based devices might work as wel
 | **Extel** | Power Strip | 6 ports | Soky Power Strip | *Compatible* |
 | **MCL** | Power Strip | 6 ports | DOM-PPS06I | *Compatible* |
 
-### ✅ Firmware Compatibility
-- **v1.06** - Full support ✅ **(Tested & Validated - CoCoSo)**
-- **v1.10** - Full support ✅ **(Tested & Validated - Max Hauri)**
-- **v1.30** - Full support ✅ **(Tested & Validated - Max Hauri)**
-- **v2.11** - Full support ✅ **(Tested & Validated - Max Hauri)**
-- **v3.36** - Full support ✅ **(Tested & Validated - Revogi)**
-- **v3.49** - Full support ✅ **(Tested & Validated - Revogi)**
 
 **🤝 Help us expand compatibility!** If you have Revogi-based devices from other brands or with different firmware versions, please [test them and let us know](https://github.com/superkikim/mh-maxsmart-hass/issues/new?template=device_compatibility.md) - we'd love to add them to the supported list!
 
