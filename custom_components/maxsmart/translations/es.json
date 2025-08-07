@@ -1,0 +1,146 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Descubrimiento de dispositivos MaxSmart",
+        "description": "Buscando dispositivos MaxSmart en su red. Si no se encuentra ningún dispositivo automáticamente, ingrese una dirección IP manualmente.",
+        "data": {
+          "ip_address": "Dirección IP"
+        },
+        "data_description": {
+          "ip_address": "Ingrese la dirección IP de su dispositivo MaxSmart (ej: 192.168.1.100)"
+        }
+      },
+      "device_selection": {
+        "title": "Seleccionar dispositivo MaxSmart",
+        "description": "Se encontraron múltiples dispositivos MaxSmart. Seleccione el dispositivo que desea configurar:",
+        "data": {
+          "selected_device": "Dispositivo seleccionado"
+        }
+      },
+      "device_naming": {
+        "title": "Configurar dispositivo MaxSmart",
+        "description": "Configure los nombres para su dispositivo MaxSmart y sus puertos. Estos nombres aparecerán en Home Assistant.",
+        "data": {
+          "device_name": "Nombre del dispositivo",
+          "port_1_name": "Nombre del puerto 1",
+          "port_2_name": "Nombre del puerto 2",
+          "port_3_name": "Nombre del puerto 3",
+          "port_4_name": "Nombre del puerto 4",
+          "port_5_name": "Nombre del puerto 5",
+          "port_6_name": "Nombre del puerto 6"
+        },
+        "data_description": {
+          "device_name": "Nombre descriptivo para este dispositivo MaxSmart",
+          "port_1_name": "Nombre para el puerto 1 (ej: Lámpara de escritorio)",
+          "port_2_name": "Nombre para el puerto 2 (ej: Monitor)",
+          "port_3_name": "Nombre para el puerto 3 (ej: Altavoces)",
+          "port_4_name": "Nombre para el puerto 4 (ej: Cargador)",
+          "port_5_name": "Nombre para el puerto 5 (ej: Impresora)",
+          "port_6_name": "Nombre para el puerto 6 (ej: Router)"
+        }
+      }
+    },
+    "error": {
+      "discovery_failed": "El descubrimiento automático falló. Por favor, intente ingresar una dirección IP manualmente.",
+      "no_device_found": "No se encontró ningún dispositivo MaxSmart en esta dirección IP. Verifique la IP y asegúrese de que el dispositivo esté encendido.",
+      "connection_error": "No se puede conectar al dispositivo. Verifique la dirección IP y la conexión de red.",
+      "invalid_ip": "Por favor, ingrese una dirección IP válida (ej: 192.168.1.100).",
+      "device_info_error": "No se puede obtener información del dispositivo. Por favor, inténtelo de nuevo.",
+      "name_required": "Este campo es obligatorio y no puede estar vacío.",
+      "name_too_long": "El nombre es demasiado largo (máximo 50 caracteres).",
+      "invalid_characters": "El nombre contiene caracteres no válidos. Use solo letras, números, espacios, guiones, guiones bajos y puntos.",
+      "name_duplicate": "Este nombre ya está en uso. Por favor, elija un nombre diferente."
+    },
+    "abort": {
+      "devices_found": "Se encontraron {count} dispositivos MaxSmart. Cada dispositivo aparecerá como una integración separada para configurar.",
+      "device_already_configured": "Este dispositivo ya está configurado en Home Assistant.",
+      "devices_configured": "Todos los dispositivos descubiertos se han configurado exitosamente.",
+      "no_device": "No se seleccionó ningún dispositivo para configuración.",
+      "single_instance_allowed": "Solo se permite una instancia de la integración MaxSmart."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Renombrar dispositivo MaxSmart",
+        "description": "Modifique los nombres de su dispositivo MaxSmart y sus puertos. Los cambios se aplicarán inmediatamente.",
+        "data": {
+          "device_name": "Nombre del dispositivo",
+          "port_1_name": "Nombre del puerto 1",
+          "port_2_name": "Nombre del puerto 2",
+          "port_3_name": "Nombre del puerto 3",
+          "port_4_name": "Nombre del puerto 4",
+          "port_5_name": "Nombre del puerto 5",
+          "port_6_name": "Nombre del puerto 6"
+        },
+        "data_description": {
+          "device_name": "Nuevo nombre para este dispositivo MaxSmart",
+          "port_1_name": "Nuevo nombre para el puerto 1",
+          "port_2_name": "Nuevo nombre para el puerto 2",
+          "port_3_name": "Nuevo nombre para el puerto 3",
+          "port_4_name": "Nuevo nombre para el puerto 4",
+          "port_5_name": "Nuevo nombre para el puerto 5",
+          "port_6_name": "Nuevo nombre para el puerto 6"
+        }
+      },
+      "confirm_ip_change": {
+        "title": "Confirmar cambio de dirección IP",
+        "description": "⚠️ Advertencia: La nueva dirección IP {new_ip} no responde a las pruebas de conexión.\n\nEsto podría significar:\n• El dispositivo no está en esta dirección IP\n• El dispositivo está temporalmente desconectado\n• Problemas de conectividad de red\n\n¿Desea proceder con el cambio de dirección IP para {device_name} de todos modos?",
+        "data": {
+          "confirm": "Sí, cambiar la dirección IP de todos modos"
+        }
+      }
+    },
+    "error": {
+      "name_required": "Este campo es obligatorio y no puede estar vacío.",
+      "name_too_long": "El nombre es demasiado largo (máximo 50 caracteres).",
+      "invalid_characters": "El nombre contiene caracteres no válidos. Use solo letras, números, espacios, guiones, guiones bajos y puntos.",
+      "name_duplicate": "Este nombre ya está en uso. Por favor, elija un nombre diferente.",
+      "ip_test_failed": "La nueva dirección IP no responde. Por favor, verifique que la dirección sea correcta.",
+      "ip_change_failed": "Error al cambiar la dirección IP. Por favor, inténtelo de nuevo."
+    }
+  },
+  "entity": {
+    "switch": {
+      "master": {
+        "name": "Interruptor principal"
+      }
+    },
+    "sensor": {
+      "total_power": {
+        "name": "Potencia total"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "turned_on": "Encendido",
+      "turned_off": "Apagado",
+      "power_above": "Consumo por encima de",
+      "power_below": "Consumo por debajo de"
+    }
+  },
+  "services": {
+    "turn_on_port": {
+      "name": "Encender puerto",
+      "description": "Encender un puerto específico en el dispositivo MaxSmart",
+      "fields": {
+        "port": {
+          "name": "Puerto",
+          "description": "Número del puerto a encender (1-6, o 0 para todos los puertos)"
+        }
+      }
+    },
+    "turn_off_port": {
+      "name": "Apagar puerto",
+      "description": "Apagar un puerto específico en el dispositivo MaxSmart",
+      "fields": {
+        "port": {
+          "name": "Puerto",
+          "description": "Número del puerto a apagar (1-6, o 0 para todos los puertos)"
+        }
+      }
+    }
+  }
+}

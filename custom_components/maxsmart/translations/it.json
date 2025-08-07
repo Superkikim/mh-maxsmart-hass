@@ -1,0 +1,146 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Scoperta dispositivi MaxSmart",
+        "description": "Ricerca di dispositivi MaxSmart sulla tua rete. Se nessun dispositivo viene trovato automaticamente, inserisci un indirizzo IP manualmente.",
+        "data": {
+          "ip_address": "Indirizzo IP"
+        },
+        "data_description": {
+          "ip_address": "Inserisci l'indirizzo IP del tuo dispositivo MaxSmart (es: 192.168.1.100)"
+        }
+      },
+      "device_selection": {
+        "title": "Seleziona dispositivo MaxSmart",
+        "description": "Sono stati trovati più dispositivi MaxSmart. Seleziona il dispositivo che vuoi configurare:",
+        "data": {
+          "selected_device": "Dispositivo selezionato"
+        }
+      },
+      "device_naming": {
+        "title": "Configura dispositivo MaxSmart",
+        "description": "Configura i nomi per il tuo dispositivo MaxSmart e le sue porte. Questi nomi appariranno in Home Assistant.",
+        "data": {
+          "device_name": "Nome del dispositivo",
+          "port_1_name": "Nome della porta 1",
+          "port_2_name": "Nome della porta 2",
+          "port_3_name": "Nome della porta 3",
+          "port_4_name": "Nome della porta 4",
+          "port_5_name": "Nome della porta 5",
+          "port_6_name": "Nome della porta 6"
+        },
+        "data_description": {
+          "device_name": "Nome descrittivo per questo dispositivo MaxSmart",
+          "port_1_name": "Nome per la porta 1 (es: Lampada da scrivania)",
+          "port_2_name": "Nome per la porta 2 (es: Monitor)",
+          "port_3_name": "Nome per la porta 3 (es: Altoparlanti)",
+          "port_4_name": "Nome per la porta 4 (es: Caricatore)",
+          "port_5_name": "Nome per la porta 5 (es: Stampante)",
+          "port_6_name": "Nome per la porta 6 (es: Router)"
+        }
+      }
+    },
+    "error": {
+      "discovery_failed": "La scoperta automatica è fallita. Prova a inserire un indirizzo IP manualmente.",
+      "no_device_found": "Nessun dispositivo MaxSmart trovato a questo indirizzo IP. Verifica l'IP e assicurati che il dispositivo sia acceso.",
+      "connection_error": "Impossibile connettersi al dispositivo. Verifica l'indirizzo IP e la connessione di rete.",
+      "invalid_ip": "Inserisci un indirizzo IP valido (es: 192.168.1.100).",
+      "device_info_error": "Impossibile ottenere informazioni sul dispositivo. Riprova.",
+      "name_required": "Questo campo è obbligatorio e non può essere vuoto.",
+      "name_too_long": "Il nome è troppo lungo (massimo 50 caratteri).",
+      "invalid_characters": "Il nome contiene caratteri non validi. Usa solo lettere, numeri, spazi, trattini, underscore e punti.",
+      "name_duplicate": "Questo nome è già in uso. Scegli un nome diverso."
+    },
+    "abort": {
+      "devices_found": "Trovati {count} dispositivi MaxSmart. Ogni dispositivo apparirà come un'integrazione separata da configurare.",
+      "device_already_configured": "Questo dispositivo è già configurato in Home Assistant.",
+      "devices_configured": "Tutti i dispositivi scoperti sono stati configurati con successo.",
+      "no_device": "Nessun dispositivo selezionato per la configurazione.",
+      "single_instance_allowed": "È consentita solo un'istanza dell'integrazione MaxSmart."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Rinomina dispositivo MaxSmart",
+        "description": "Modifica i nomi del tuo dispositivo MaxSmart e delle sue porte. Le modifiche verranno applicate immediatamente.",
+        "data": {
+          "device_name": "Nome del dispositivo",
+          "port_1_name": "Nome della porta 1",
+          "port_2_name": "Nome della porta 2",
+          "port_3_name": "Nome della porta 3",
+          "port_4_name": "Nome della porta 4",
+          "port_5_name": "Nome della porta 5",
+          "port_6_name": "Nome della porta 6"
+        },
+        "data_description": {
+          "device_name": "Nuovo nome per questo dispositivo MaxSmart",
+          "port_1_name": "Nuovo nome per la porta 1",
+          "port_2_name": "Nuovo nome per la porta 2",
+          "port_3_name": "Nuovo nome per la porta 3",
+          "port_4_name": "Nuovo nome per la porta 4",
+          "port_5_name": "Nuovo nome per la porta 5",
+          "port_6_name": "Nuovo nome per la porta 6"
+        }
+      },
+      "confirm_ip_change": {
+        "title": "Conferma cambio indirizzo IP",
+        "description": "⚠️ Attenzione: Il nuovo indirizzo IP {new_ip} non risponde ai test di connessione.\n\nQuesto potrebbe significare:\n• Il dispositivo non è a questo indirizzo IP\n• Il dispositivo è temporaneamente offline\n• Problemi di connettività di rete\n\nVuoi procedere comunque con il cambio di indirizzo IP per {device_name}?",
+        "data": {
+          "confirm": "Sì, cambia l'indirizzo IP comunque"
+        }
+      }
+    },
+    "error": {
+      "name_required": "Questo campo è obbligatorio e non può essere vuoto.",
+      "name_too_long": "Il nome è troppo lungo (massimo 50 caratteri).",
+      "invalid_characters": "Il nome contiene caratteri non validi. Usa solo lettere, numeri, spazi, trattini, underscore e punti.",
+      "name_duplicate": "Questo nome è già in uso. Scegli un nome diverso.",
+      "ip_test_failed": "Il nuovo indirizzo IP non risponde. Verifica che l'indirizzo sia corretto.",
+      "ip_change_failed": "Errore nel cambio dell'indirizzo IP. Riprova."
+    }
+  },
+  "entity": {
+    "switch": {
+      "master": {
+        "name": "Interruttore principale"
+      }
+    },
+    "sensor": {
+      "total_power": {
+        "name": "Potenza totale"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "turned_on": "Acceso",
+      "turned_off": "Spento",
+      "power_above": "Consumo sopra",
+      "power_below": "Consumo sotto"
+    }
+  },
+  "services": {
+    "turn_on_port": {
+      "name": "Accendi porta",
+      "description": "Accendi una porta specifica sul dispositivo MaxSmart",
+      "fields": {
+        "port": {
+          "name": "Porta",
+          "description": "Numero della porta da accendere (1-6, o 0 per tutte le porte)"
+        }
+      }
+    },
+    "turn_off_port": {
+      "name": "Spegni porta",
+      "description": "Spegni una porta specifica sul dispositivo MaxSmart",
+      "fields": {
+        "port": {
+          "name": "Porta",
+          "description": "Numero della porta da spegnere (1-6, o 0 per tutte le porte)"
+        }
+      }
+    }
+  }
+}

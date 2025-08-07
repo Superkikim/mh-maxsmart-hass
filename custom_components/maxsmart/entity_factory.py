@@ -53,7 +53,13 @@ class MaxSmartEntityFactory:
         """Get MAC address if available."""
         # Support both old (mac_address) and new (mac) keys for migration compatibility
         return self.device_data.get("mac", self.device_data.get("mac_address", ""))
-    
+
+    @property
+    def serial_number(self) -> str:
+        """Get serial number if available."""
+        # Support both new (sn) and old (udp_serial) keys for migration compatibility
+        return self.device_data.get("sn", self.device_data.get("udp_serial", ""))
+
     @property
     def identification_method(self) -> str:
         """Get identification method used."""
@@ -144,32 +150,27 @@ class MaxSmartEntityFactory:
             "configuration_url": f"http://{self.device_ip}",
         }
         
-        # Add hardware information if available
+        # Add essential hardware information for user visibility
         hw_details = []
-        
-        # Add IP address (requested feature)
+
+        # Add IP address (always visible)
         hw_details.append(f"IP: {self.device_ip}")
-        
-        # Add CPU ID
-        if self.cpu_id:
-            hw_details.append(f"CPU: {self.cpu_id[:12]}...")
-            
-        # Add MAC address
+
+        # Add serial number if available (important for identification)
+        if self.serial_number:
+            hw_details.append(f"SN: {self.serial_number}")
+
+        # Add MAC address if available (useful for network identification)
         if self.mac_address:
             hw_details.append(f"MAC: {self.mac_address}")
-            
-        # Add identification method
-        id_method = self.identification_method.replace('_', ' ').title()
-        hw_details.append(f"ID: {id_method}")
-        
-        # Add hardware details to model description
+
+        # Add hardware details to model description (removed CPU ID and ID method - not user-friendly)
         if hw_details:
             device_info["model"] = f"{model} ({', '.join(hw_details)})"
             
-        # Add serial number if available (for legacy compatibility)
-        udp_serial = self.device_data.get("udp_serial", "")
-        if udp_serial:
-            device_info["serial_number"] = udp_serial
+        # Add serial number if available (use modern 'sn' field or legacy 'udp_serial')
+        if self.serial_number:
+            device_info["serial_number"] = self.serial_number
             
         return device_info
     

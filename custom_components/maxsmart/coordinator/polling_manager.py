@@ -24,14 +24,40 @@ class PollingManager:
     async def on_poll_data(self, poll_data: Dict[str, Any]) -> None:
         """Callback for successful polling data from maxsmart intelligent polling."""
         try:
+            # DEBUG: Log received poll data
+            _LOGGER.debug("🔧 POLL DATA: %s - Received poll_data: %s", self.device_name, poll_data)
+
+            # Validate poll data before updating
+            if not poll_data or not isinstance(poll_data, dict):
+                _LOGGER.warning("🔧 POLL DATA: %s - Invalid or empty poll_data, skipping update", self.device_name)
+                return
+
+            # Extract device_data from maxsmart 2.0.5 callback format
+            device_data = poll_data.get('device_data')
+            if device_data and isinstance(device_data, dict):
+                # maxsmart 2.0.5 format: callback contains metadata + device_data
+                actual_data = device_data
+                _LOGGER.debug("🔧 POLL DATA: %s - Extracted device_data: %s", self.device_name, actual_data)
+            else:
+                # Legacy format: callback is directly the device data
+                actual_data = poll_data
+                _LOGGER.debug("🔧 POLL DATA: %s - Using direct poll_data: %s", self.device_name, actual_data)
+
+            # Check if actual_data has expected keys
+            expected_keys = ["switch", "watt"]
+            if not any(key in actual_data for key in expected_keys):
+                _LOGGER.warning("🔧 POLL DATA: %s - Data missing expected keys %s, skipping update",
+                               self.device_name, expected_keys)
+                return
+
             # Record successful poll for error tracking
             self.coordinator.error_tracker.record_successful_poll()
-            
-            # Update coordinator data
-            self.coordinator.async_set_updated_data(poll_data)
-            
+
+            # Update coordinator data with actual device data
+            self.coordinator.async_set_updated_data(actual_data)
+
             _LOGGER.debug("%s polling callback: Data updated successfully", self.device_name)
-            
+
         except Exception as err:
             _LOGGER.error("%s polling callback error: %s", self.device_name, err)
     
@@ -49,9 +75,12 @@ class PollingManager:
                     if self.coordinator.device and self.coordinator._initialized:
                         # Get fresh data from device
                         data = await self.coordinator.device.get_data()
+                        _LOGGER.debug("🔧 PERIODIC POLL: %s - Device data: %s", self.device_name, data)
                         if data:
                             await self.on_poll_data(data)
-                        
+                        else:
+                            _LOGGER.warning("🔧 PERIODIC POLL: %s - No data from device", self.device_name)
+
                     await asyncio.sleep(30)  # Poll every 30 seconds
                     
                 except Exception as err:
@@ -76,28 +105,21 @@ class PollingManager:
             retry_interval = 60.0  # Start with 60 seconds
             max_interval = 300.0   # Max 5 minutes
             
-            _LOGGER.warning("🔄 OFFLINE RETRY: %s - Starting retry loop (interval=%ds, max=%ds)",
-                           self.device_name, retry_interval, max_interval)
+            _LOGGER.warning("Le device %s ne répond plus", self.device_name)
 
             # Set offline start time for IP recovery timeline
             self.coordinator.ip_recovery.set_device_offline_start(offline_start_time)
 
-            _LOGGER.warning("🔄 OFFLINE RETRY LOOP: %s - About to enter while loop, initialized=%s",
-                           self.device_name, self.coordinator._initialized)
-
             while not self.coordinator._initialized:
-                _LOGGER.warning("🔄 OFFLINE RETRY LOOP: %s - Starting iteration, waiting %ds", self.device_name, retry_interval)
                 await asyncio.sleep(retry_interval)
                 current_time = time.time()
-
-                _LOGGER.warning("🔄 OFFLINE RETRY LOOP: %s - Sleep completed, starting attempt", self.device_name)
 
                 try:
                     # Try original IP first
                     success = await self.coordinator._try_connect_at_ip(self.coordinator.device_ip)
 
                     if success:
-                        _LOGGER.info("✅ %s - Connection restored", self.device_name)
+                        _LOGGER.info("✅ %s - Connexion rétablie", self.device_name)
                         await self.coordinator._complete_successful_setup()
                         return
 
@@ -106,43 +128,33 @@ class PollingManager:
                     log_error_recorded(self.device_name, "connection_refused",
                                      self.coordinator.error_tracker.consecutive_errors, should_log)
 
-                    # 🚀 ARP CHECK: Check for IP change on FIRST failure only
+                    # ARP CHECK: Check for IP change on FIRST failure only
                     if self.coordinator.error_tracker.consecutive_errors == 1 and self.coordinator.mac_address:
-                        _LOGGER.debug("🔍 FIRST FAILURE: %s - Performing ARP check", self.device_name)
+                        _LOGGER.info("Tentative de récupération de l'IP pour %s", self.device_name)
                         await self.coordinator.ip_recovery_manager.immediate_arp_check()
                         # If ARP found new IP and changed it, the device will be reinitialized
                         # and this loop will exit, so we can continue to next iteration
                         continue
 
-                    # NEW: Check if IP recovery should be attempted based on consecutive failures
-                    _LOGGER.warning("🔍 IP RECOVERY CHECK: %s - Errors=%d, threshold=3, MAC=%s",
-                                 self.device_name, self.coordinator.error_tracker.consecutive_errors,
-                                 self.coordinator.mac_address[:8] + "..." if self.coordinator.mac_address else "None")
-
+                    # Check if IP recovery should be attempted based on consecutive failures
                     if self.coordinator.error_tracker.consecutive_errors >= 3:
                         can_recover = self.coordinator.ip_recovery.can_attempt_recovery(current_time)
 
                         if can_recover:
+                            _LOGGER.info("Tentative de récupération de l'IP pour %s", self.device_name)
                             new_ip = await self._attempt_runtime_ip_recovery(current_time)
                             if new_ip:
+                                _LOGGER.info("Nouvelle IP trouvée, reconfiguration %s → %s", self.coordinator.device_ip, new_ip)
                                 success = await self.coordinator._try_connect_at_ip(new_ip)
                                 if success:
                                     await self.coordinator.ip_recovery_manager._update_device_ip(new_ip)
                                     await self.coordinator._complete_successful_setup()
                                     return
-                        else:
-                            recovery_status = self.coordinator.ip_recovery.get_status()
-                            _LOGGER.debug("⏳ IP RECOVERY: %s - Not ready yet - %s", self.device_name, recovery_status)
-                    else:
-                        _LOGGER.debug("⏳ IP RECOVERY CHECK: %s - Need %d more errors (current: %d)",
-                                     self.device_name, 3 - self.coordinator.error_tracker.consecutive_errors,
-                                     self.coordinator.error_tracker.consecutive_errors)
+                            else:
+                                _LOGGER.warning("Pas de nouvelle IP trouvée pour %s", self.device_name)
 
                     # Both failed - increase retry interval (normal retry logic continues)
-                    old_interval = retry_interval
                     retry_interval = min(retry_interval * 1.5, max_interval)
-                    _LOGGER.debug("%s Offline retry: Increasing retry interval %.1fs -> %.1fs",
-                                 self.device_name, old_interval, retry_interval)
 
                 except asyncio.CancelledError:
                     _LOGGER.debug("Offline retry loop cancelled for %s", self.device_name)
@@ -198,32 +210,39 @@ class PollingManager:
                 
                 # Only check if device is supposed to be online
                 if self.coordinator._initialized and self.coordinator.device:
-                    # Check if device is responding
+                    # Check if device is responding with a simple data request
                     try:
-                        # Simple ping test
-                        is_responding = await self.coordinator._try_connect_at_ip(self.coordinator.device_ip)
-                        
-                        if not is_responding:
-                            # Device not responding - record error
-                            should_log = self.coordinator.error_tracker.record_error("connection_refused")
-                            log_error_recorded(self.device_name, "connection_refused",
-                                             self.coordinator.error_tracker.consecutive_errors, should_log)
-                            
-                            # Check if IP recovery attempt should be made
-                            can_recover = self.coordinator.ip_recovery.can_attempt_recovery(current_time)
-                            _LOGGER.debug("%s Error detection: IP recovery check result: %s", self.device_name, can_recover)
-                            
-                            if can_recover:
-                                _LOGGER.debug("%s Error detection: TRIGGERING IP recovery attempt", self.device_name)
-                                await self._attempt_runtime_ip_recovery(current_time)
-                            else:
-                                recovery_status = self.coordinator.ip_recovery.get_status()
-                                _LOGGER.debug("%s Error detection: IP recovery not ready - %s", self.device_name, recovery_status)
-                        else:
+                        # Simple data test instead of full discovery
+                        data = await self.coordinator.device.get_data()
+                        is_responding = data is not None and len(data) > 0
+
+                        if is_responding:
+                            # Device responding - reset error counter
+                            self.coordinator.error_tracker.record_successful_poll()
                             _LOGGER.debug("%s Error detection: Device status OK", self.device_name)
-                    
+                        else:
+                            # Device not responding - record error
+                            should_log = self.coordinator.error_tracker.record_error("no_data")
+                            log_error_recorded(self.device_name, "no_data",
+                                             self.coordinator.error_tracker.consecutive_errors, should_log)
+
                     except Exception as err:
+                        # Error during check - record error
+                        should_log = self.coordinator.error_tracker.record_error("connection_error")
+                        log_error_recorded(self.device_name, "connection_error",
+                                         self.coordinator.error_tracker.consecutive_errors, should_log)
                         _LOGGER.debug("%s Error detection: Check failed: %s", self.device_name, err)
+
+                        # Check if IP recovery attempt should be made
+                        can_recover = self.coordinator.ip_recovery.can_attempt_recovery(current_time)
+                        _LOGGER.debug("%s Error detection: IP recovery check result: %s", self.device_name, can_recover)
+
+                        if can_recover:
+                            _LOGGER.debug("%s Error detection: TRIGGERING IP recovery attempt", self.device_name)
+                            await self._attempt_runtime_ip_recovery(current_time)
+                        else:
+                            recovery_status = self.coordinator.ip_recovery.get_status()
+                            _LOGGER.debug("%s Error detection: IP recovery not ready - %s", self.device_name, recovery_status)
                 
         except asyncio.CancelledError:
             _LOGGER.debug("%s Error detection: Loop cancelled", self.device_name)

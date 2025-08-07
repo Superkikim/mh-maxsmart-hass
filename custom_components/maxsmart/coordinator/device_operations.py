@@ -22,7 +22,8 @@ class DeviceOperations:
                 return False
 
             _LOGGER.debug("%s Turn ON port %d", self.device_name, port_id)
-            success = await self.coordinator.device.turn_on_port(port_id)
+            await self.coordinator.device.turn_on(port_id)
+            success = True  # maxsmart 2.0.5 turn_on() doesn't return success status
             
             if success:
                 _LOGGER.debug("%s Port %d turned ON successfully", self.device_name, port_id)
@@ -43,7 +44,8 @@ class DeviceOperations:
                 return False
 
             _LOGGER.debug("%s Turn OFF port %d", self.device_name, port_id)
-            success = await self.coordinator.device.turn_off_port(port_id)
+            await self.coordinator.device.turn_off(port_id)
+            success = True  # maxsmart 2.0.5 turn_off() doesn't return success status
             
             if success:
                 _LOGGER.debug("%s Port %d turned OFF successfully", self.device_name, port_id)

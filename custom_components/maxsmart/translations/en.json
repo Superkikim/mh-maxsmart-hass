@@ -79,7 +79,7 @@
       },
       "confirm_ip_change": {
         "title": "Confirm IP Address Change",
-        "description": "⚠️ Warning: The new IP address {new_ip} does not respond to connection tests.\n\nThis could mean:\n• The device is not at this IP address\n• The device is temporarily offline\n• Network connectivity issues\n\nDo you want to proceed with changing the IP address for '{device_name}' anyway?",
+        "description": "⚠️ Warning: The new IP address {new_ip} does not respond to connection tests.\n\nThis could mean:\n• The device is not at this IP address\n• The device is temporarily offline\n• Network connectivity issues\n\nDo you want to proceed with changing the IP address for {device_name} anyway?",
         "data": {
           "confirm": "Yes, change the IP address anyway"
         }
