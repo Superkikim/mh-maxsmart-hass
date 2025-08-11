@@ -1,6 +1,6 @@
 # Max Hauri MaxSmart (Revogi based) for Home Assistant
 
-[![Version](https://img.shields.io/badge/Version-2025.8.1-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases)
+[![Version](https://img.shields.io/badge/Version-2025.8.2-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.6%2B-green.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Official-brightgreen.svg)](https://hacs.xyz/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -25,6 +25,20 @@ If this integration makes your life easier, consider supporting its development:
 - **$75** - Supercharge my entire dev toolkit 🚀
 
 *Your support helps me continue building useful tools and explore new ways of making your life easier.*
+
+## ✨ What's New in v2025.8.2 - UDP Protocol Support
+
+**🎯 Major Protocol Enhancements:**
+- **📡 UDP V3 Protocol Support** - Full support for newer MaxSmart devices using UDP V3 protocol
+- **🔄 Automatic Protocol Detection** - Seamless detection and handling of both HTTP and UDP V3 devices
+- **🆙 MaxSmart Library 2.1.0** - Updated to latest maxsmart library with enhanced protocol support
+- **🔧 Smart Device Creation** - Intelligent device initialization based on detected protocol
+
+**🔧 Technical Improvements:**
+- **🛡️ Enhanced Discovery** - Improved device discovery with protocol identification
+- **📱 Better Device Support** - Support for firmware v5.11+ with UDP V3 protocol
+- **⚡ Seamless Migration** - Automatic upgrade from maxsmart 2.0.5 to 2.1.0
+- **🔧 Protocol Routing** - Intelligent routing between HTTP and UDP V3 based on device capabilities
 
 ## ✨ What's New in v2025.8.1 - User Experience Improvements
 
@@ -54,14 +68,14 @@ If this integration makes your life easier, consider supporting its development:
 
 ## 📱 Supported Devices
 
-| Brand | Device Type | Ports | Model Examples | Firmware Tested |
-|-------|-------------|-------|----------------|-----------------|
-| **Max Hauri** | Smart Plug | 1 port | MaxSmart Smart Plug | v1.10, v1.30, v2.11 ✅ |
-| **Max Hauri** | Power Station | 6 ports | MaxSmart Power Station | v1.10, v1.30, v2.11 ✅ |
-| **Revogi** | Power Strip | 6 ports | SOW323 | v3.36, v3.49 ✅ |
-| **CoCoSo** | Power Strip | 6 ports | SOW323 | v1.06 ✅ |
-| **Extel** | Power Strip | 6 ports | Soky Power Strip | *Compatible* |
-| **MCL** | Power Strip | 6 ports | DOM-PPS06I | *Compatible* |
+| Brand | Device Type | Ports | Model Examples | Firmware Tested | Protocol |
+|-------|-------------|-------|----------------|-----------------|----------|
+| **Max Hauri** | Smart Plug | 1 port | MaxSmart Smart Plug | v1.10, v1.30, v2.11 ✅ | HTTP |
+| **Max Hauri** | Power Station | 6 ports | MaxSmart Power Station | v1.10, v1.30, v2.11 ✅ | HTTP |
+| **Revogi** | Power Strip | 6 ports | SOW323 | v3.36, v3.49, v5.11 ✅ | HTTP/UDP V3 |
+| **CoCoSo** | Power Strip | 6 ports | SOW323 | v1.06 ✅ | HTTP |
+| **Extel** | Power Strip | 6 ports | Soky Power Strip | *Compatible* | HTTP |
+| **MCL** | Power Strip | 6 ports | DOM-PPS06I | *Compatible* | HTTP |
 
 
 **🤝 Help us expand compatibility!** If you have Revogi-based devices from other brands or with different firmware versions, please [test them and let us know](https://github.com/superkikim/mh-maxsmart-hass/issues/new?template=device_compatibility.md) - we'd love to add them to the supported list!
@@ -235,14 +249,15 @@ Device: "Coffee Maker Plug"
 ## ⚠️ Important Notes
 
 ### Device Limitations
-- **HTTP Only** - Devices use unencrypted communication (device hardware limitation)
+- **Protocol Support** - Devices use HTTP or UDP V3 protocols (unencrypted communication)
 - **Discovery Network** - Device discovery requires same network segment (UDP broadcast limitation)
-- **Control Network** - Device control works across network segments (HTTP routing supported)
+- **Control Network** - Device control works across network segments (HTTP/UDP routing supported)
 - **Port Limits** - 1 or 6 ports depending on device model
 
 ### Firmware Compatibility
-- **v1.06, v1.10, v1.30** - Recommended, full feature support
-- **v2.11, v3.36, v3.49** - Full feature support
+- **v1.06, v1.10, v1.30** - HTTP protocol, full feature support ✅
+- **v2.11, v3.36, v3.49** - HTTP protocol, full feature support ✅
+- **v5.11+** - UDP V3 protocol, full feature support ✅
 - **Other versions** - May work but not officially tested
 
 ### End of Life Notice

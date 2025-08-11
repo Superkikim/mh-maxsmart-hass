@@ -65,6 +65,7 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         self.device: Optional[MaxSmartDevice] = None
         self._initialized = False
         self._shutdown_event = asyncio.Event()
+        self._discovered_device_info: Optional[Dict[str, Any]] = None
         
         # Component managers
         self.error_tracker = SmartErrorTracker(self.device_name)
@@ -107,17 +108,19 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
         """Try to connect to device at specific IP address."""
         try:
             log_connection_test_start(self.device_name, ip_address)
-            
+
             from ..discovery import async_discover_device_by_ip
-            device = await async_discover_device_by_ip(ip_address, enhance_with_hardware=True)
-            
-            if device:
+            device_info = await async_discover_device_by_ip(ip_address, enhance_with_hardware=True)
+
+            if device_info:
                 log_connection_test_success(self.device_name, ip_address)
+                # Store discovered device info for protocol detection
+                self._discovered_device_info = device_info
                 return True
             else:
                 log_connection_test_failed(self.device_name, ip_address, "No device found")
                 return False
-                
+
         except Exception as err:
             log_connection_test_failed(self.device_name, ip_address, str(err))
             return False
@@ -145,8 +148,32 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
     async def _complete_successful_setup(self) -> None:
         """Complete successful device setup."""
         try:
-            # Create and initialize device
-            self.device = MaxSmartDevice(self.device_ip)
+            # Create and initialize device with protocol detection
+            protocol = None
+            sn = None
+
+            # Use discovered device info if available (maxsmart 2.1.0 support)
+            if self._discovered_device_info:
+                protocol = self._discovered_device_info.get('protocol')
+                sn = self._discovered_device_info.get('sn')
+                _LOGGER.debug("%s Protocol detected from discovery: %s, SN: %s",
+                             self.device_name, protocol, sn)
+
+            # Create device with appropriate parameters for maxsmart 2.1.0
+            if protocol and sn:
+                # UDP V3 device with serial number
+                self.device = MaxSmartDevice(self.device_ip, protocol=protocol, sn=sn)
+                _LOGGER.debug("%s Creating UDP V3 device with protocol=%s, sn=%s",
+                             self.device_name, protocol, sn)
+            elif protocol:
+                # HTTP or other protocol without serial
+                self.device = MaxSmartDevice(self.device_ip, protocol=protocol)
+                _LOGGER.debug("%s Creating device with protocol=%s", self.device_name, protocol)
+            else:
+                # Fallback to auto-detection (legacy behavior)
+                self.device = MaxSmartDevice(self.device_ip)
+                _LOGGER.debug("%s Creating device with auto-detection", self.device_name)
+
             await self.device.initialize_device()
             
             # Log device info to verify firmware version and watt multiplier

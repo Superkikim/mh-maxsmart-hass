@@ -1,3 +1,59 @@
+# 🚀 MaxSmart Integration v2025.8.2
+
+[![Version](https://img.shields.io/badge/Version-2025.8.2-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases/tag/2025.8.2)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.6%2B-green.svg)](https://www.home-assistant.io/)
+[![Python](https://img.shields.io/badge/Python-3.7%2B-blue.svg)](https://www.python.org/)
+
+**Protocol Enhancement Release** with full UDP V3 support for newer MaxSmart devices. This version adds comprehensive support for both HTTP and UDP V3 protocols, ensuring compatibility with all MaxSmart device generations.
+
+## ✨ What's New in v2025.8.2
+
+### 🎯 Major Protocol Enhancements
+- **📡 UDP V3 Protocol Support** - Full support for newer MaxSmart devices (firmware v5.11+) using UDP V3 protocol
+- **🔄 Automatic Protocol Detection** - Seamless detection and handling of both HTTP and UDP V3 devices during discovery
+- **🆙 MaxSmart Library 2.1.0** - Updated to latest maxsmart library with enhanced protocol support and bug fixes
+- **🔧 Smart Device Creation** - Intelligent device initialization based on detected protocol and device capabilities
+
+### 🔧 Technical Improvements
+- **🛡️ Enhanced Discovery System** - Improved device discovery with automatic protocol identification
+- **📱 Better Device Support** - Extended support for Revogi devices with firmware v5.11+ using UDP V3
+- **⚡ Seamless Library Migration** - Automatic upgrade from maxsmart 2.0.5 to 2.1.0 with backward compatibility
+- **🔧 Protocol Routing** - Intelligent routing between HTTP and UDP V3 protocols based on device capabilities
+- **🆔 Serial Number Support** - Enhanced device identification for UDP V3 devices using serial numbers
+
+### 🐛 Bug Fixes
+- **🔌 UDP V3 Connection Issues** - Fixed connection failures for newer devices that only support UDP V3
+- **🔍 Protocol Detection** - Resolved auto-detection failures that caused HTTP fallback on UDP V3 devices
+- **⚙️ Device Initialization** - Improved device setup process for mixed protocol environments
+- **🔄 IP Recovery** - Enhanced IP change detection for UDP V3 devices
+
+### 📱 Device Compatibility Updates
+- **✅ Revogi v5.11** - Full support for Revogi devices with firmware v5.11 using UDP V3 protocol
+- **🔄 Mixed Environments** - Seamless operation in networks with both HTTP and UDP V3 devices
+- **🆔 Enhanced Identification** - Better device fingerprinting for UDP V3 devices
+
+## 🆙 Upgrading from v2025.8.1
+
+### Automatic Upgrade Process
+Your existing setup will be **automatically enhanced**:
+
+1. **Install Update** - Use HACS or manual installation
+2. **Restart Home Assistant** - Triggers automatic library upgrade
+3. **Protocol Detection** - Existing devices maintain HTTP, new discoveries detect UDP V3
+4. **Verify Operation** - All devices should continue working with enhanced protocol support
+
+### What Happens During Upgrade
+- ✅ **Preserves all settings** - Device names, port names, configurations remain unchanged
+- ✅ **Maintains automations** - All existing automations continue working without modification
+- ✅ **Enhances protocol support** - Adds UDP V3 capability without affecting HTTP devices
+- ✅ **Improves reliability** - Better error handling for both protocols
+- ✅ **Updates library** - Seamless upgrade to maxsmart 2.1.0
+
+### New Device Discovery
+- **HTTP Devices** - Continue working as before with enhanced reliability
+- **UDP V3 Devices** - Now properly detected and configured automatically
+- **Mixed Networks** - Seamless operation with both protocol types
+
 # 🚀 MaxSmart Integration v2025.8.1
 
 [![Version](https://img.shields.io/badge/Version-2025.8.1-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases/tag/2025.8.1)
@@ -159,6 +215,7 @@ If you encounter issues:
 | MaxSmart Power Station (6-port) | **v1.30** | [![Full](https://img.shields.io/badge/Support-Full-brightgreen.svg)]() | [![Tested](https://img.shields.io/badge/Tests-Validated-brightgreen.svg)]() |
 | MaxSmart Smart Plug (1-port) | **v1.30** | [![Full](https://img.shields.io/badge/Support-Full-brightgreen.svg)]() | [![Tested](https://img.shields.io/badge/Tests-Validated-brightgreen.svg)]() |
 | MaxSmart Devices | **v2.11+** | [![Basic](https://img.shields.io/badge/Support-Basic-yellow.svg)]() | [![Tested](https://img.shields.io/badge/Tests-Validated-brightgreen.svg)]() |
+| Revogi Devices (UDP V3) | **v5.11+** | [![Full](https://img.shields.io/badge/Support-Full-brightgreen.svg)]() | [![Tested](https://img.shields.io/badge/Tests-Validated-brightgreen.svg)]() |
 | Other Compatible Models | Various | [![Unknown](https://img.shields.io/badge/Support-Unknown-orange.svg)]() | [![Need Testers](https://img.shields.io/badge/Tests-Need%20Volunteers-red.svg)]() |
 
 **🤝 Expand Our Device Support!** 
@@ -167,7 +224,7 @@ If you have MaxSmart devices with different firmware versions, please [contact u
 ## 🆕 New Dependencies
 
 ### Updated Dependencies
-- **maxsmart** >= 2.0.3 (Python library with enhanced features)
+- **maxsmart** >= 2.1.0 (Python library with UDP V3 protocol support)
 - **aiohttp** (for efficient async HTTP communication)
 
 All dependencies are automatically managed by Home Assistant.

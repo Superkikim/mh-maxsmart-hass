@@ -47,9 +47,6 @@ coverage/
 # VS Code
 .vscode/
 
-# Test scripts
-test_maxsmart*.py
-
 # Other
 .DS_Store
 Thumbs.db

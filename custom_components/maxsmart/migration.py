@@ -420,7 +420,7 @@ class MaxSmartMigrationManager:
         """Check if config entry needs migration - simple format check."""
         data = entry.data
 
-        # Expected 2025.8.1 format: device_ip, sn, mac, cpuid, ver, etc.
+        # Expected 2025.8.2 format: device_ip, sn, mac, cpuid, ver, etc.
         required_fields = ["device_ip", "device_unique_id", "device_name"]
         expected_fields = ["sn", "mac", "cpuid", "ver"]
 
@@ -430,7 +430,7 @@ class MaxSmartMigrationManager:
                 _LOGGER.debug("Entry needs migration: missing required field '%s'", field)
                 return True
 
-        # Check expected 2025.8.1 fields
+        # Check expected 2025.8.2 fields
         missing_expected = [field for field in expected_fields if field not in data]
         if missing_expected:
             _LOGGER.debug("Entry needs migration: missing expected fields %s", missing_expected)
@@ -471,7 +471,24 @@ class MaxSmartMigrationManager:
     async def _query_device_directly(self, ip_address: str) -> Optional[Dict[str, Any]]:
         """Query device directly at specific IP address."""
         try:
-            temp_device = MaxSmartDevice(ip_address)
+            # Try discovery first to get protocol info for maxsmart 2.1.0
+            from .discovery import async_discover_device_by_ip
+            device_info = await async_discover_device_by_ip(ip_address, enhance_with_hardware=True)
+
+            protocol = None
+            sn = None
+            if device_info:
+                protocol = device_info.get('protocol')
+                sn = device_info.get('sn')
+
+            # Create device with appropriate parameters
+            if protocol and sn:
+                temp_device = MaxSmartDevice(ip_address, protocol=protocol, sn=sn)
+            elif protocol:
+                temp_device = MaxSmartDevice(ip_address, protocol=protocol)
+            else:
+                temp_device = MaxSmartDevice(ip_address)
+
             await temp_device.initialize_device()
 
             # Get hardware identifiers

@@ -478,8 +478,24 @@ class IPRecoveryManager:
                     except Exception as err:
                         _LOGGER.debug("Error stopping device during IP change: %s", err)
 
-                # Create new device with new IP
-                self.coordinator.device = MaxSmartDevice(new_ip)
+                # Create new device with new IP and protocol detection
+                from ..discovery import async_discover_device_by_ip
+                device_info = await async_discover_device_by_ip(new_ip, enhance_with_hardware=True)
+
+                protocol = None
+                sn = None
+                if device_info:
+                    protocol = device_info.get('protocol')
+                    sn = device_info.get('sn')
+
+                # Create device with appropriate parameters for maxsmart 2.1.0
+                if protocol and sn:
+                    self.coordinator.device = MaxSmartDevice(new_ip, protocol=protocol, sn=sn)
+                elif protocol:
+                    self.coordinator.device = MaxSmartDevice(new_ip, protocol=protocol)
+                else:
+                    self.coordinator.device = MaxSmartDevice(new_ip)
+
                 await self.coordinator.device.initialize_device()
 
                 # Reset state for fresh start
