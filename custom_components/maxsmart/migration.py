@@ -312,6 +312,7 @@ class MaxSmartMigrationManager:
             "pname": device.get("pname", []),
             "device_ip": device["ip"],  # Use current IP (may have changed)
             "ver": device.get("ver", "Unknown"),
+            "sw_version": device.get("ver", "Unknown"),  # Add for entity_factory compatibility
             "cpuid": device.get("cpuid", ""),
             "mac": device.get("mac", ""),
             "server": device.get("server", ""),

@@ -40,9 +40,12 @@ class MaxSmartEntityFactory:
     @property
     def firmware_version(self) -> str:
         """Get firmware version."""
-        fw_version = self.device_data.get("sw_version", "Unknown")
+        # Try both keys for compatibility: sw_version (new devices) and ver (migrated devices)
+        fw_version = self.device_data.get("sw_version") or self.device_data.get("ver", "Unknown")
         _LOGGER.debug("ENTITY_FACTORY: Firmware version from device_data: %s", fw_version)
         _LOGGER.debug("ENTITY_FACTORY: Device data keys: %s", list(self.device_data.keys()))
+        _LOGGER.debug("ENTITY_FACTORY: sw_version=%s, ver=%s",
+                     self.device_data.get("sw_version"), self.device_data.get("ver"))
         return fw_version
     
     @property

@@ -175,11 +175,20 @@ class MaxSmartCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("%s Creating device with auto-detection", self.device_name)
 
             await self.device.initialize_device()
-            
+
             # Log device info to verify firmware version and watt multiplier
+            # Use discovery data for firmware version if available (fixes UDP V3 devices)
+            firmware_version = "Unknown"
+            if self._discovered_device_info:
+                firmware_version = self._discovered_device_info.get("ver", "Unknown")
+                _LOGGER.debug("%s Using firmware from discovery: %s", self.device_name, firmware_version)
+            else:
+                firmware_version = getattr(self.device, 'version', 'Unknown')
+                _LOGGER.debug("%s Using firmware from device: %s", self.device_name, firmware_version)
+
             log_device_recreated(
                 self.device_name,
-                getattr(self.device, 'version', 'Unknown'),
+                firmware_version,
                 getattr(self.device, '_watt_format', 'Unknown'),
                 getattr(self.device, '_watt_multiplier', 1.0)
             )
