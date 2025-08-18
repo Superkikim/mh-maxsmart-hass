@@ -211,21 +211,22 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured()
         
         # Build enhanced entry data
+        firmware_version = device.get("ver", "Unknown")
         entry_data = {
             # Core identification
             "device_unique_id": device_id,
             "device_ip": device["ip"],
             "device_name": names["device_name"],
-            "sw_version": device.get("ver", "Unknown"),
-            
+            "sw_version": firmware_version,  # Used by device_info
+
             # Hardware identifiers (new)
             "cpu_id": device.get("cpu_id", ""),
             "mac_address": device.get("mac", ""),  # Fixed: use "mac" key from discovery
             "udp_serial": device.get("sn", ""),
             "identification_method": device.get("identification_method", "fallback"),
-            
+
             # Device capabilities
-            "firmware_version": device.get("ver", "Unknown"),
+            "firmware_version": firmware_version,  # Duplicate for backward compatibility
             "port_count": self._get_port_count_from_device(device),
         }
         
