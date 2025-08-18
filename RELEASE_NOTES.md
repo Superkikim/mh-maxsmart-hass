@@ -24,11 +24,14 @@
 ### 🐛 Bug Fixes
 - **🔌 UDP V3 Connection Issues** - Fixed connection failures for newer devices that only support UDP V3
 - **🔍 Protocol Detection** - Resolved auto-detection failures that caused HTTP fallback on UDP V3 devices
+- **📱 Firmware Version Display** - Fixed "Unknown" firmware version display for UDP V3 devices
 - **⚙️ Device Initialization** - Improved device setup process for mixed protocol environments
 - **🔄 IP Recovery** - Enhanced IP change detection for UDP V3 devices
 
 ### 📱 Device Compatibility Updates
 - **✅ Revogi v5.11** - Full support for Revogi devices with firmware v5.11 using UDP V3 protocol
+- **🔌 UDP V3 Devices** - Support for all devices using Revogi's UDP V3 API (firmware v5.11+)
+- **🏭 Multi-Brand Support** - Compatible with Revogi-based devices from various manufacturers
 - **🔄 Mixed Environments** - Seamless operation in networks with both HTTP and UDP V3 devices
 - **🆔 Enhanced Identification** - Better device fingerprinting for UDP V3 devices
 

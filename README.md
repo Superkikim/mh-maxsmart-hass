@@ -78,6 +78,8 @@ If this integration makes your life easier, consider supporting its development:
 | **MCL** | Power Strip | 6 ports | DOM-PPS06I | *Compatible* | HTTP |
 
 
+**📡 UDP V3 Protocol Support:** Firmware v5.11+ devices from Revogi and other manufacturers using Revogi's UDP V3 API are now fully supported. This includes newer power strips and smart plugs that have moved from HTTP to UDP V3 communication.
+
 **🤝 Help us expand compatibility!** If you have Revogi-based devices from other brands or with different firmware versions, please [test them and let us know](https://github.com/superkikim/mh-maxsmart-hass/issues/new?template=device_compatibility.md) - we'd love to add them to the supported list!
 
 ## 🚀 Installation
