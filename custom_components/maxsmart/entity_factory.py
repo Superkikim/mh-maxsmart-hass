@@ -40,7 +40,10 @@ class MaxSmartEntityFactory:
     @property
     def firmware_version(self) -> str:
         """Get firmware version."""
-        return self.device_data.get("sw_version", "Unknown")
+        fw_version = self.device_data.get("sw_version", "Unknown")
+        _LOGGER.debug("ENTITY_FACTORY: Firmware version from device_data: %s", fw_version)
+        _LOGGER.debug("ENTITY_FACTORY: Device data keys: %s", list(self.device_data.keys()))
+        return fw_version
     
     @property
     def cpu_id(self) -> str:

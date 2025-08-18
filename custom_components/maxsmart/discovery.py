@@ -68,9 +68,10 @@ async def async_discover_device_by_ip(ip_address: str, enhance_with_hardware: bo
         
         if devices:
             device = devices[0]  # Should only be one for unicast
-            _LOGGER.debug("🔍 DISCOVERY: Found MaxSmart device: %s (%s)", 
+            _LOGGER.debug("🔍 DISCOVERY: Found MaxSmart device: %s (%s)",
                         device.get("name", "Unknown"), device.get("ip", "Unknown"))
             _LOGGER.debug("🔍 DISCOVERY: Device data = %s", device)
+            _LOGGER.debug("🔍 DISCOVERY: Device firmware version = %s", device.get("ver", "NOT_FOUND"))
             return device
         else:
             _LOGGER.debug("🔍 DISCOVERY: No MaxSmart device found at %s", ip_address)

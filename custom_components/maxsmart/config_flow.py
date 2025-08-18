@@ -212,6 +212,8 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         
         # Build enhanced entry data
         firmware_version = device.get("ver", "Unknown")
+        _LOGGER.debug("CONFIG_FLOW: Device data from discovery: %s", device)
+        _LOGGER.debug("CONFIG_FLOW: Firmware version extracted: %s", firmware_version)
         entry_data = {
             # Core identification
             "device_unique_id": device_id,
@@ -236,6 +238,7 @@ class MaxSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             port_key = f"port_{port_id}_name"
             entry_data[port_key] = names[port_key]
         
+        _LOGGER.debug("CONFIG_FLOW: Final entry data: %s", entry_data)
         return self.async_create_entry(
             title=f"MaxSmart {names['device_name']}",
             data=entry_data,

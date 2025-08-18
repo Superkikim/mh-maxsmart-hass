@@ -498,16 +498,19 @@ class MaxSmartMigrationManager:
             mac_address = await temp_device.get_mac_address_via_arp()
 
             # Build device info in maxsmart 2.0.5 format
+            device_version = getattr(temp_device, 'version', '')
+            _LOGGER.debug("MIGRATION: Device version from temp_device: %s", device_version)
             device_info = {
                 "ip": ip_address,
                 "name": getattr(temp_device, 'name', ''),
                 "sn": getattr(temp_device, 'sn', ''),
-                "ver": getattr(temp_device, 'version', ''),
+                "ver": device_version,
                 "pname": getattr(temp_device, 'port_names', []),
                 "cpuid": hw_ids.get("cpuid", ""),
                 "mac": mac_address,  # Clean MAC only
                 "server": "",  # Not available via direct query
             }
+            _LOGGER.debug("MIGRATION: Built device info: %s", device_info)
 
             await temp_device.close()
             return device_info
