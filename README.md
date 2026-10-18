@@ -1,6 +1,6 @@
 # Max Hauri MaxSmart (Revogi based) for Home Assistant
 
-[![Version](https://img.shields.io/badge/Version-2025.8.2-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases)
+[![Version](https://img.shields.io/badge/Version-2026.10.1-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.6%2B-green.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Official-brightgreen.svg)](https://hacs.xyz/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -25,6 +25,11 @@ If this integration makes your life easier, consider supporting its development:
 - **$75** - Supercharge my entire dev toolkit 🚀
 
 *Your support helps me continue building useful tools and explore new ways of making your life easier.*
+
+## ✨ What's New in v2026.10.1 - Home Assistant 2026.10 Compatibility
+
+**🐛 Bug Fix:**
+- **🔌 Devices not added on Home Assistant 2026.10** - Fixed switch entities not being created (only the power sensor appeared) because Home Assistant now rejects the deprecated `via_device` parameter. Thanks to [@phylor](https://github.com/phylor) ([#16](https://github.com/Superkikim/mh-maxsmart-hass/pull/16))
 
 ## ✨ What's New in v2025.8.2 - UDP Protocol Support
 
