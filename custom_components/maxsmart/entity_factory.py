@@ -152,7 +152,6 @@ class MaxSmartEntityFactory:
             "manufacturer": "Max Hauri", 
             "model": model,
             "sw_version": self.firmware_version,
-            "via_device": None,
             "configuration_url": f"http://{self.device_ip}",
         }
         
