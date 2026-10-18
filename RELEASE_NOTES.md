@@ -1,3 +1,16 @@
+# 🚀 MaxSmart Integration v2026.10.1
+
+[![Version](https://img.shields.io/badge/Version-2026.10.1-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases/tag/2026.10.1)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.10%2B-green.svg)](https://www.home-assistant.io/)
+
+**Compatibility Fix Release** for Home Assistant 2026.10.
+
+## 🐛 Bug Fixes
+- **🔌 Devices not added on Home Assistant 2026.10** - Home Assistant now rejects the deprecated `via_device` parameter in the device registry, even when set to `None`. The switch entities were not created (only the power sensor appeared). The unused `via_device` entry has been removed from the device info. No behavior change for existing setups and no impact on older Home Assistant versions ([#16](https://github.com/Superkikim/mh-maxsmart-hass/pull/16)).
+
+## 🙏 Thanks
+- Thanks to [@phylor](https://github.com/phylor) (Serge Hänni) for reporting, diagnosing and fixing this issue.
+
 # 🚀 MaxSmart Integration v2025.8.2
 
 [![Version](https://img.shields.io/badge/Version-2025.8.2-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases/tag/2025.8.2)

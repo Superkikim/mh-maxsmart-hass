@@ -284,6 +284,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Original Protocol** - Thanks to [@altery](https://github.com/altery/mh-maxsmart-powerstation) for reverse engineering
 - **Python Module** - Built on the [maxsmart](https://pypi.org/project/maxsmart/) library
 - **Community** - Thanks to all users providing feedback and testing
+- **Contributors** - Thanks to [@phylor](https://github.com/phylor) for the Home Assistant 2026.10 compatibility fix ([#16](https://github.com/Superkikim/mh-maxsmart-hass/pull/16))
 
 ---
 
