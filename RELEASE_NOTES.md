@@ -1,3 +1,19 @@
+# 🚀 MaxSmart Integration v2026.10.2
+
+[![Version](https://img.shields.io/badge/Version-2026.10.2-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases/tag/2026.10.2)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.10%2B-green.svg)](https://www.home-assistant.io/)
+
+**Logging Improvement Release** - much quieter logs when a device is offline.
+
+## 🔧 Improvements
+- **🔇 Less log noise for offline devices** - When a device was unreachable (powered off, unplugged, or at Home Assistant startup while the network is not ready), every retry produced several warnings in the log. The automatic IP recovery and retries were already working correctly; only the logging was too verbose. Now:
+  - A single warning is logged when a device stops responding, and a reminder roughly once an hour while it stays offline.
+  - "Discovery failed" for a specific IP and "Starting retry loop" are now debug messages.
+  - No change to retry, ARP or IP recovery behavior.
+
+## ℹ️ Note
+- A line `No MaxSmart devices found during discovery` may still appear as an error from the `root` logger. It is emitted by the `maxsmart` library itself, not by this integration.
+
 # 🚀 MaxSmart Integration v2026.10.1
 
 [![Version](https://img.shields.io/badge/Version-2026.10.1-blue.svg)](https://github.com/superkikim/mh-maxsmart-hass/releases/tag/2026.10.1)
