@@ -78,7 +78,8 @@ async def async_discover_device_by_ip(ip_address: str, enhance_with_hardware: bo
             return None
             
     except DiscoveryError as err:
-        _LOGGER.warning("🔍 DISCOVERY: Discovery failed for %s: %s", ip_address, err)
+        # Expected when a device is offline; callers handle None and log at their own level
+        _LOGGER.debug("🔍 DISCOVERY: Discovery failed for %s: %s", ip_address, err)
         return None
         
     except Exception as err:

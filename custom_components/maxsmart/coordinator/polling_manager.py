@@ -96,7 +96,7 @@ class PollingManager:
         """Start periodic retry for offline devices."""
         if self._offline_retry_task is None or self._offline_retry_task.done():
             self._offline_retry_task = asyncio.create_task(self._offline_retry_loop())
-            _LOGGER.warning("🔄 OFFLINE RETRY: %s - Starting retry loop", self.device_name)
+            _LOGGER.debug("🔄 OFFLINE RETRY: %s - Starting retry loop", self.device_name)
     
     async def _offline_retry_loop(self) -> None:
         """Conservative retry loop for offline devices with integrated IP recovery."""

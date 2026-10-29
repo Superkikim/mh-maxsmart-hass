@@ -153,16 +153,11 @@ class SmartErrorTracker:
             self.last_logged_error_time = current_time
             return True
         
-        # Log every 5th error
-        if self.consecutive_errors % 5 == 0:
+        # Then only a periodic reminder (~hourly at the 5 min max retry interval)
+        if self.consecutive_errors % 12 == 0:
             self.last_logged_error_time = current_time
             return True
-        
-        # Log if enough time has passed since last log
-        if current_time - self.last_logged_error_time >= self.log_interval:
-            self.last_logged_error_time = current_time
-            return True
-        
+
         return False
     
     def is_device_considered_offline(self) -> bool:
